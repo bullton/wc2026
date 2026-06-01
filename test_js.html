@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>最小测试</title>
+</head>
+<body>
+    <h1>JavaScript 测试页面</h1>
+    <button id="testBtn">点击测试</button>
+    <p id="result">等待点击...</p>
+    
+    <script>
+        console.log('=== JavaScript 已加载 ===');
+        
+        document.getElementById('testBtn').addEventListener('click', function() {
+            console.log('按钮被点击了!');
+            document.getElementById('result').textContent = '按钮成功点击!';
+        });
+        
+        console.log('脚本执行完毕');
+    </script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+function renderStandings() {
+    const container = document.getElementById('standingsContainer');
+    
+    // 调试信息
+    console.log('renderStandings 被调用');
+    console.log('allMatches 长度:', allMatches.length);
+    
+    // 检查数据是否加载
+    if (allMatches.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 60px; color: var(--text-secondary);">
+                <h2>⚠️ 数据加载中...</h2>
+                <p>如果长时间未显示，请刷新页面或检查网络连接</p>
+                <p>API 地址: ${API_BASE}/matches?year=${currentYear}</p>
+            </div>
+        `;
+        
+        // 尝试重新加载数据
+        fetchMatches().then(() => {
+            console.log('重新加载后 allMatches 长度:', allMatches.length);
+            if (allMatches.length > 0) {
+                renderStandings();
+            }
+        });
+        return;
+    }
+    
+    const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+    const groupTeams = {
+        'A': ['墨西哥', '南非', '韩国', '捷克'],
+        'B': ['加拿大', '波黑', '卡塔尔', '瑞士'],
+        'C': ['巴西', '摩洛哥', '海地', '苏格兰'],
+        'D': ['美国', '澳大利亚', '土耳其', '巴拉圭'],
+        'E': ['德国', '科特迪瓦', '厄瓜多尔', '库拉索'],
+        'F': ['荷兰', '日本', '瑞典', '突尼斯'],
+        'G': ['比利时', '埃及', '伊朗', '新西兰'],
+        'H': ['西班牙', '沙特阿拉伯', '乌拉圭', '佛得角'],
+        'I': ['法国', '伊拉克', '挪威', '塞内加尔'],
+        'J': ['阿根廷', '奥地利', '约旦', '阿尔及利亚'],
+        'K': ['葡萄牙', '哥伦比亚', '乌兹别克斯坦', '民主刚果'],
+        'L': ['英格兰', '克罗地亚', '加纳', '巴拿马']
+    };
+    
+    const groupMatches = {};
+    groups.forEach(g => {
+        groupMatches[g] = allMatches.filter(m => m.group_name === g);
+    });
+    
+    container.innerHTML = '<div class="standings-grid">' + 
+        groups.map(group => {
+            const color = groupColors[group];
+            const teams = groupTeams[group];
+            const matches = groupMatches[group] || [];
+            
+            const teamStats = teams.map(team => {
+                const teamMatches = matches.filter(m => m.home_team === team || m.away_team === team);
+                let win = 0, draw = 0, lose = 0, gf = 0, ga = 0, yellow = 0, red = 0, points = 0;
+                
+                teamMatches.forEach(m => {
+                    const isHome = m.home_team === team;
+                    const scored = isHome ? (parseInt(m.home_score) || 0) : (parseInt(m.away_score) || 0);
+                    const conceded = isHome ? (parseInt(m.away_score) || 0) : (parseInt(m.home_score) || 0);
+                    const myYellow = isHome ? (m.home_yellow_card || 0) : (m.away_yellow_card || 0);
+                    const myRed = isHome ? (m.home_red_card || 0) : (m.away_red_card || 0);
+                    
+                    gf += scored;
+                    ga += conceded;
+                    yellow += myYellow;
+                    red += myRed;
+                    
+                    if (m.home_score !== '' && m.away_score !== '') {
+                        if (scored > conceded) { win++; points += 3; }
+                        else if (scored === conceded) { draw++; points += 1; }
+                        else { lose++; }
+                    }
+                });
+                
+                return { team, win, draw, lose, gf, ga, gd: gf - ga, points, yellow, red };
+            });
+            
+            teamStats.sort((a, b) => {
+                if (b.points !== a.points) return b.points - a.points;
+                if (b.gd !== a.gd) return b.gd - a.gd;
+                return b.gf - a.gf;
+            });
+            
+            return `
+                <div class="standings-table">
+                    <div class="standings-header" style="border-left: 4px solid ${color}">第${group}组</div>
+                    <table class="standings-main">
+                        <thead>
+                            <tr>
+                                <th class="rank-col">#</th>
+                                <th class="team-col">球队</th>
+                                <th class="stat-col">赛</th>
+                                <th class="stat-col">胜</th>
+                                <th class="stat-col">平</th>
+                                <th class="stat-col">负</th>
+                                <th class="stat-col">进</th>
+                                <th class="stat-col">失</th>
+                                <th class="stat-col">净</th>
+                                <th class="stat-col">积分</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${teamStats.map((s, i) => `
+                                <tr class="team-row" data-group="${group}" data-team="${s.team}">
+                                    <td class="rank-col">${i + 1}</td>
+                                    <td class="team-col team-name">${s.team}</td>
+                                    <td class="stat-col">${s.win + s.draw + s.lose}</td>
+                                    <td class="stat-col">${s.win}</td>
+                                    <td class="stat-col">${s.draw}</td>
+                                    <td class="stat-col">${s.lose}</td>
+                                    <td class="stat-col">${s.gf}</td>
+                                    <td class="stat-col">${s.ga}</td>
+                                    <td class="stat-col ${s.gd > 0 ? 'positive' : s.gd < 0 ? 'negative' : ''}">${s.gd > 0 ? '+' : ''}${s.gd}</td>
+                                    <td class="stat-col points">${s.points}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <div class="cards-row">
+                        <span class="cards-label">黄牌:</span>
+                        ${teamStats.map(s => `<span class="card-count yellow">${s.yellow}</span>`).join('')}
+                    </div>
+                    <div class="cards-row">
+                        <span class="cards-label">红牌:</span>
+                        ${teamStats.map(s => `<span class="card-count red">${s.red}</span>`).join('')}
+                    </div>
+                    <div class="h2h-section" id="h2h-${group}">
+                        <div class="h2h-toggle" onclick="toggleH2H('${group}')">组内对阵 ▼</div>
+                        <div class="h2h-content">
+                            ${matches.map(m => `
+                                <div class="h2h-match">
+                                    <span class="h2h-team ${m.home_team}">${m.home_team}</span>
+                                    <span class="h2h-score">${m.home_score || '-' } : ${m.away_score || '-'}</span>
+                                    <span class="h2h-team ${m.away_team}">${m.away_team}</span>
+                                    <span class="h2h-date">${m.match_date.slice(5)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('') + '</div>';
+}

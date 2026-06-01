@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>诊断工具</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+        .test { margin: 20px 0; padding: 15px; background: white; border-radius: 8px; }
+        .success { border-left: 4px solid #4CAF50; }
+        .error { border-left: 4px solid #f44336; }
+        .pending { border-left: 4px solid #FFC107; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>⚽ 世界杯页面诊断工具</h1>
+    
+    <div class="test pending" id="test1">
+        <h3>1. API 连接测试</h3>
+        <button onclick="testAPI()">测试 API</button>
+        <pre id="api-result">等待测试...</pre>
+    </div>
+    
+    <div class="test pending" id="test2">
+        <h3>2. 数据获取测试</h3>
+        <button onclick="testFetchMatches()">测试获取比赛数据</button>
+        <pre id="fetch-result">等待测试...</pre>
+    </div>
+    
+    <div class="test pending" id="test3">
+        <h3>3. 积分表渲染测试</h3>
+        <button onclick="testRenderStandings()">测试渲染积分表</button>
+        <div id="standings-result"></div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let allMatches = [];
+        
+        async function testAPI() {
+            const result = document.getElementById('api-result');
+            const testDiv = document.getElementById('test1');
+            try {
+                const response = await fetch(`${API_BASE}/matches?year=2026`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                result.textContent = `✓ API 连接成功!\n返回 ${data.length} 场比赛`;
+                testDiv.className = 'test success';
+            } catch (error) {
+                result.textContent = `✗ API 调用失败:\n${error.message}`;
+                testDiv.className = 'test error';
+            }
+        }
+        
+        async function testFetchMatches() {
+            const result = document.getElementById('fetch-result');
+            const testDiv = document.getElementById('test2');
+            try {
+                const response = await fetch(`${API_BASE}/matches?year=2026`);
+                allMatches = await response.json();
+                result.textContent = `✓ 获取成功!\nallMatches.length = ${allMatches.length}`;
+                if (allMatches.length > 0) {
+                    result.textContent += `\n\n第一场比赛:\n${JSON.stringify(allMatches[0], null, 2)}`;
+                }
+                testDiv.className = 'test success';
+            } catch (error) {
+                result.textContent = `✗ 获取失败:\n${error.message}`;
+                testDiv.className = 'test error';
+            }
+        }
+        
+        function testRenderStandings() {
+            const result = document.getElementById('standings-result');
+            const testDiv = document.getElementById('test3');
+            
+            if (allMatches.length === 0) {
+                result.innerHTML = '<p style="color: red;">✗ 请先运行测试2获取数据</p>';
+                testDiv.className = 'test error';
+                return;
+            }
+            
+            const groups = ['A', 'B', 'C', 'D'];
+            const groupTeams = {
+                'A': ['墨西哥', '南非', '韩国', '捷克'],
+                'B': ['加拿大', '波黑', '卡塔尔', '瑞士'],
+                'C': ['巴西', '摩洛哥', '海地', '苏格兰'],
+                'D': ['美国', '澳大利亚', '土耳其', '巴拉圭']
+            };
+            
+            let html = '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">';
+            
+            groups.forEach(group => {
+                const matches = allMatches.filter(m => m.group_name === group);
+                html += `
+                    <div style="background: white; padding: 15px; border-radius: 8px;">
+                        <h4 style="margin: 0 0 10px 0;">第${group}组 (${matches.length}场比赛)</h4>
+                        <p>球队: ${groupTeams[group].join(', ')}</p>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            result.innerHTML = html;
+            testDiv.className = 'test success';
+        }
+    </script>
+</body>
+</html>

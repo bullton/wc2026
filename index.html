@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 世界杯 - 赛程日历</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-bracket@0.11.1/dist/jquery.bracket.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-bracket@0.11.1/dist/jquery.bracket.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0a0f1a;
+            --bg-card: #111827;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --accent: #10b981;
+            --group-a: #ef4444;
+            --group-b: #f59e0b;
+            --group-c: #10b981;
+            --group-d: #06b6d4;
+            --group-e: #8b5cf6;
+            --group-f: #ec4899;
+            --group-g: #3b82f6;
+            --group-h: #f97316;
+            --group-i: #14b8a6;
+            --group-j: #a855f7;
+            --group-k: #22c55e;
+            --group-l: #f43f5e;
+            --knockout: #fbbf24;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .hero {
+            position: relative;
+            padding: 60px 20px 40px;
+            text-align: center;
+            background: linear-gradient(180deg, #0f172a 0%, var(--bg-dark) 100%);
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.15) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff 0%, #10b981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+        }
+        
+        .timezone-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            color: var(--accent);
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 0 20px;
+            margin-bottom: 20px;
+        }
+        
+        .tab-btn {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-secondary);
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-family: 'Noto Sans SC', sans-serif;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+        
+        .tab-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        
+        .tab-content {
+            display: none;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px 60px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            padding: 5px 10px;
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .calendar-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .month-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            min-width: 200px;
+            text-align: center;
+        }
+        
+        .nav-btn {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .calendar {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px 60px;
+        }
+        
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .weekday {
+            text-align: center;
+            padding: 15px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+        
+        .day-cell {
+            background: var(--bg-card);
+            border-radius: 12px;
+            min-height: 180px;
+            padding: 10px;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .day-cell:hover {
+            border-color: rgba(16, 185, 129, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .day-cell.empty {
+            background: transparent;
+            border: none;
+        }
+        
+        .day-number {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .day-cell.today .day-number {
+            color: var(--accent);
+        }
+        
+        .day-cell.has-matches {
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.9) 0%, rgba(17, 24, 39, 0.7) 100%);
+        }
+        
+        .match-item {
+            padding: 5px 7px;
+            margin-bottom: 3px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+        
+        .match-item:hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+        
+        .match-time {
+            font-weight: 600;
+            opacity: 0.9;
+            font-size: 0.65rem;
+        }
+        
+        .match-teams {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .match-venue {
+            font-size: 0.65rem;
+            opacity: 0.8;
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        
+        .fi {
+            font-size: 0.8rem;
+        }
+        
+        .group-A { background: rgba(239, 68, 68, 0.2); border-left: 3px solid var(--group-a); }
+        .group-B { background: rgba(245, 158, 11, 0.2); border-left: 3px solid var(--group-b); }
+        .group-C { background: rgba(16, 185, 129, 0.2); border-left: 3px solid var(--group-c); }
+        .group-D { background: rgba(6, 182, 212, 0.2); border-left: 3px solid var(--group-d); }
+        .group-E { background: rgba(139, 92, 246, 0.2); border-left: 3px solid var(--group-e); }
+        .group-F { background: rgba(236, 72, 153, 0.2); border-left: 3px solid var(--group-f); }
+        .group-G { background: rgba(59, 130, 246, 0.2); border-left: 3px solid var(--group-g); }
+        .group-H { background: rgba(249, 115, 22, 0.2); border-left: 3px solid var(--group-h); }
+        .group-I { background: rgba(20, 184, 166, 0.2); border-left: 3px solid var(--group-i); }
+        .group-J { background: rgba(168, 85, 247, 0.2); border-left: 3px solid var(--group-j); }
+        .group-K { background: rgba(34, 197, 94, 0.2); border-left: 3px solid var(--group-k); }
+        .group-L { background: rgba(244, 63, 94, 0.2); border-left: 3px solid var(--group-l); }
+        .group-knockout { background: rgba(251, 191, 36, 0.2); border-left: 3px solid var(--knockout); }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid rgba(255,255,255,0.1);
+            transform: scale(0.9);
+            transition: all 0.3s ease;
+        }
+        
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+        
+        .modal-body {
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+        
+        .modal-body p {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .modal-body strong {
+            color: var(--text-primary);
+        }
+        
+        .modal-teams {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 20px 0;
+        }
+        
+        .vs {
+            color: var(--accent);
+            font-size: 1.2rem;
+        }
+        
+        .standings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+        }
+        
+        .standings-table {
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .standings-header {
+            padding: 12px 15px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .standings-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        
+        .standings-table th, .standings-table td {
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .standings-table th {
+            background: rgba(255,255,255,0.03);
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .standings-table .team-name {
+            text-align: left;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .flag-icon {
+            display: inline-block !important;
+            width: 20px !important;
+            height: 14px !important;
+            background-size: cover !important;
+        }
+        
+        .standings-table .points {
+            font-weight: 700;
+            color: var(--accent);
+        }
+        
+        .standings-table .positive {
+            color: #22c55e;
+        }
+        
+        .standings-table .negative {
+            color: #ef4444;
+        }
+        
+        .standings-table .stat-col {
+            min-width: 30px;
+        }
+        
+        .standings-table .rank-col {
+            min-width: 25px;
+            font-weight: 600;
+        }
+        
+        .standings-table .team-col {
+            min-width: 80px;
+        }
+        
+        .standings-table .team-row {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .standings-table .team-row:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .h2h-section {
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .h2h-toggle {
+            padding: 8px 15px;
+            font-size: 0.8rem;
+            color: var(--accent);
+            cursor: pointer;
+            background: rgba(255,255,255,0.03);
+            transition: background 0.2s;
+        }
+        
+        .h2h-toggle:hover {
+            background: rgba(255,255,255,0.06);
+        }
+        
+        .h2h-content {
+            padding: 10px 15px;
+            display: none;
+        }
+        
+        .h2h-match {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 6px 0;
+            font-size: 0.8rem;
+            border-bottom: 1px dashed rgba(255,255,255,0.05);
+        }
+        
+        .h2h-match:last-child {
+            border-bottom: none;
+        }
+        
+        .h2h-team {
+            min-width: 60px;
+            text-align: right;
+        }
+        
+        .h2h-score {
+            font-weight: 700;
+            color: var(--accent);
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .h2h-date {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            min-width: 35px;
+        }
+        
+        .standings-container {
+            overflow-x: auto;
+        }
+        
+        .bracket-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 40px;
+            padding: 40px 20px;
+            overflow-x: auto;
+        }
+        
+        .bracket-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .bracket-section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+        
+        .bracket-section:first-child .bracket-section-title {
+            border-left-color: #ef4444;
+            color: #ef4444;
+        }
+        
+        .bracket-section:last-child .bracket-section-title {
+            border-left-color: #3b82f6;
+            color: #3b82f6;
+        }
+        
+        .bracket-center-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 100px;
+        }
+        
+        .bracket-final-title {
+            font-size: 1.2rem;
+            color: #fbbf24;
+            margin-bottom: 20px;
+            font-weight: 700;
+            padding: 10px 24px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 2px solid #fbbf24;
+        }
+        
+        .jQBracket .demo {
+            background: transparent !important;
+        }
+        
+        .jQBracket .match {
+            background: var(--bg-card) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+        }
+        
+        .jQBracket .team {
+            background: var(--bg-card) !important;
+            color: var(--text-primary) !important;
+            font-size: 0.8rem !important;
+            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+        }
+        
+        .jQBracket .team:first-child {
+            border-bottom: 1px solid rgba(255,255,255,0.15) !important;
+        }
+        
+        .jQBracket .team div.label {
+            color: var(--text-primary) !important;
+            padding: 4px 8px !important;
+        }
+        
+        .jQBracket .team div.score {
+            background: rgba(16, 185, 129, 0.1) !important;
+            color: var(--accent) !important;
+            font-weight: 600 !important;
+        }
+        
+        .jQBracket .team.win div.score {
+            color: #10b981 !important;
+        }
+        
+        .jQBracket .team.lose div.score {
+            color: #ef4444 !important;
+        }
+        
+        .jQBracket .connector {
+            border-color: rgba(16, 185, 129, 0.4) !important;
+        }
+        
+        .jQBracket .connector div.connector {
+            border-color: rgba(16, 185, 129, 0.4) !important;
+        }
+        
+        .jQBracket .np .team {
+            background: rgba(255,255,255,0.05) !important;
+            color: var(--text-secondary) !important;
+        }
+        
+        .jQBracket .bubble {
+            color: var(--accent) !important;
+        }
+        
+        .jQBracket .win .bubble {
+            background-color: rgba(16, 185, 129, 0.2) !important;
+            color: var(--accent) !important;
+        }
+        
+        .jQBracket .lose .bubble {
+            background-color: rgba(239, 68, 68, 0.1) !important;
+            color: #ef4444 !important;
+        }
+        
+        .jQBracket .toolbar { 
+            display: none !important; 
+        }
+        
+        .jQBracket .teamContainer {
+            min-width: 90px;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .day-cell {
+            animation: fadeInUp 0.4s ease forwards;
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .day-cell {
+                min-height: 140px;
+                padding: 8px;
+            }
+            
+            .match-item {
+                padding: 3px 5px;
+                font-size: 0.65rem;
+            }
+            
+            .legend {
+                gap: 6px;
+            }
+            
+            .legend-item {
+                font-size: 0.7rem;
+                padding: 4px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>FIFA WORLD CUP 2026</h1>
+        <p>美加墨世界杯 · 赛程日历</p>
+        <div class="timezone-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+            </svg>
+            <span>所有时间均为北京时间 (UTC+8)</span>
+        </div>
+    </div>
+    
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="calendar">赛程日历</button>
+        <button class="tab-btn" data-tab="standings">小组积分表</button>
+        <button class="tab-btn" data-tab="brackets">淘汰赛对阵图</button>
+    </div>
+    
+    <div id="tab-calendar" class="tab-content active">
+        <div class="calendar-nav">
+            <button class="nav-btn" id="prevMonth">◀ 上月</button>
+            <h2 class="month-title" id="monthTitle"></h2>
+            <button class="nav-btn" id="nextMonth">下月 ▶</button>
+        </div>
+        <div class="calendar">
+            <div class="weekdays">
+                <div class="weekday">周日</div>
+                <div class="weekday">周一</div>
+                <div class="weekday">周二</div>
+                <div class="weekday">周三</div>
+                <div class="weekday">周四</div>
+                <div class="weekday">周五</div>
+                <div class="weekday">周六</div>
+            </div>
+            <div class="days-grid" id="daysGrid"></div>
+        </div>
+        <div class="legend" id="legend"></div>
+    </div>
+
+    <div id="tab-standings" class="tab-content">
+        <div class="standings-container" id="standingsContainer"></div>
+    </div>
+    
+    <div id="tab-brackets" class="tab-content">
+        <div class="brackets-container" id="bracketsContainer"></div>
+    </div>
+    
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title" id="modalTitle">比赛详情</span>
+                <button class="modal-close" id="modalClose">×</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        
+        const groupColors = {
+            'A': '#ef4444', 'B': '#f59e0b', 'C': '#10b981', 'D': '#06b6d4',
+            'E': '#8b5cf6', 'F': '#ec4899', 'G': '#3b82f6', 'H': '#f97316',
+            'I': '#14b8a6', 'J': '#a855f7', 'K': '#22c55e', 'L': '#f43f5e'
+        };
+        
+        const venueCountries = {
+            '墨西哥城球场': 'mx', '瓜达拉哈拉球场': 'mx', '蒙特雷球场': 'mx',
+            '多伦多体育场': 'ca', '温哥华体育场': 'ca',
+            '旧金山湾区体育场': 'us', '洛杉矶体育场': 'us', '纽约新泽西体育场': 'us',
+            '波士顿体育场': 'us', '费城体育场': 'us', '休斯敦体育场': 'us',
+            '达拉斯体育场': 'us', '西雅图体育场': 'us', '迈阿密体育场': 'us',
+            '亚特兰大体育场': 'us', '堪萨斯城体育场': 'us'
+        };
+        
+        let currentYear = 2026;
+        let currentMonth = 6;
+        let allMatches = [];
+        
+        async function fetchMatches() {
+            try {
+                const response = await fetch(`${API_BASE}/matches?year=${currentYear}`);
+                allMatches = await response.json();
+            } catch (error) {
+                console.error('获取比赛数据失败:', error);
+                allMatches = [];
+            }
+        }
+        
+        function getVenueFlag(venue) {
+            const countryCode = venueCountries[venue];
+            return countryCode ? `<span class="fi fi-${countryCode}"></span>` : '';
+        }
+        
+        function getGroupClass(groupName) {
+            if (!groupName) return 'group-knockout';
+            const group = groupName.charAt(0);
+            if (groupColors[group]) {
+                return `group-${group}`;
+            }
+            return 'group-knockout';
+        }
+        
+        function renderLegend() {
+            const legend = document.getElementById('legend');
+            legend.innerHTML = '';
+            
+            const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+            groups.forEach(group => {
+                const item = document.createElement('div');
+                item.className = 'legend-item';
+                item.innerHTML = `
+                    <span class="legend-dot" style="background: ${groupColors[group]}"></span>
+                    <span>第${group}组</span>
+                `;
+                legend.appendChild(item);
+            });
+            
+            const knockout = document.createElement('div');
+            knockout.className = 'legend-item';
+            knockout.innerHTML = `
+                <span class="legend-dot" style="background: #fbbf24"></span>
+                <span>淘汰赛</span>
+            `;
+            legend.appendChild(knockout);
+        }
+        
+        function getMatchesForDate(date) {
+            return allMatches.filter(match => match.match_date === date);
+        }
+        
+        function renderCalendar() {
+            const grid = document.getElementById('daysGrid');
+            const title = document.getElementById('monthTitle');
+            const prevBtn = document.getElementById('prevMonth');
+            const nextBtn = document.getElementById('nextMonth');
+            
+            const months = ['一月', '二月', '三月', '四月', '五月', '六月', 
+                           '七月', '八月', '九月', '十月', '十一月', '十二月'];
+            title.textContent = `${currentYear}年 ${months[currentMonth - 1]}`;
+            
+            prevBtn.disabled = currentMonth <= 6;
+            nextBtn.disabled = currentMonth >= 7;
+            
+            grid.innerHTML = '';
+            
+            const firstDay = new Date(currentYear, currentMonth - 1, 1);
+            const lastDay = new Date(currentYear, currentMonth, 0);
+            const startDayOfWeek = firstDay.getDay();
+            const totalDays = lastDay.getDate();
+            
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            
+            for (let i = 0; i < startDayOfWeek; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'day-cell empty';
+                grid.appendChild(emptyCell);
+            }
+            
+            for (let day = 1; day <= totalDays; day++) {
+                const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayCell = document.createElement('div');
+                dayCell.className = 'day-cell';
+                
+                if (dateStr === todayStr) {
+                    dayCell.classList.add('today');
+                }
+                
+                const matches = getMatchesForDate(dateStr);
+                if (matches.length > 0) {
+                    dayCell.classList.add('has-matches');
+                }
+                
+                dayCell.innerHTML = `<div class="day-number">${day}</div>`;
+                
+                matches.slice(0, 4).forEach(match => {
+                    const matchItem = document.createElement('div');
+                    matchItem.className = `match-item ${getGroupClass(match.group_name)}`;
+                    matchItem.innerHTML = `
+                        <div class="match-time">${match.match_time}</div>
+                        <div class="match-teams">${match.home_team} vs ${match.away_team}</div>
+                        <div class="match-venue">${getVenueFlag(match.venue)}${match.venue}</div>
+                    `;
+                    matchItem.addEventListener('click', () => showMatchDetail(match));
+                    dayCell.appendChild(matchItem);
+                });
+                
+                if (matches.length > 4) {
+                    const more = document.createElement('div');
+                    more.className = 'match-item';
+                    more.style.background = 'rgba(255,255,255,0.1)';
+                    more.textContent = `+${matches.length - 4} 场`;
+                    more.style.textAlign = 'center';
+                    more.style.cursor = 'pointer';
+                    more.addEventListener('click', () => showDayMatches(dateStr, matches));
+                    dayCell.appendChild(more);
+                }
+                
+                grid.appendChild(dayCell);
+            }
+        }
+        
+        function showMatchDetail(match) {
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+            
+            title.textContent = match.stage;
+            body.innerHTML = `
+                <div class="modal-teams">
+                    <span>${match.home_team}</span>
+                    <span class="vs">VS</span>
+                    <span>${match.away_team}</span>
+                </div>
+                <p><strong>📅 日期：</strong>${match.match_date}</p>
+                <p><strong>⏰ 时间：</strong>${match.match_time} (北京时间)</p>
+                <p><strong>🏟️ 场馆：</strong>${getVenueFlag(match.venue)} ${match.venue}</p>
+                <p><strong>📊 阶段：</strong>${match.stage}</p>
+                ${match.group_name && !match.stage.includes('决赛') && !match.stage.includes('1/') ? `<p><strong>🔵 分组：</strong>第${match.group_name}组</p>` : ''}
+            `;
+            
+            modal.classList.add('active');
+        }
+        
+        function showDayMatches(dateStr, matches) {
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+            
+            title.textContent = `${dateStr} 赛程`;
+            body.innerHTML = matches.map(match => `
+                <div class="match-item ${getGroupClass(match.group_name)}" style="margin-bottom: 15px; padding: 15px;">
+                    <div style="font-size: 0.9rem; margin-bottom: 8px;">${match.stage}</div>
+                    <div style="font-size: 1.2rem; font-weight: 700; margin-bottom: 5px;">
+                        ${match.home_team} vs ${match.away_team}
+                    </div>
+                    <div style="font-size: 0.85rem; opacity: 0.8;">
+                        ⏰ ${match.match_time} | 🏟️ ${getVenueFlag(match.venue)} ${match.venue}
+                    </div>
+                </div>
+            `).join('');
+            
+            modal.classList.add('active');
+        }
+        
+        document.getElementById('modalClose').addEventListener('click', () => {
+            document.getElementById('modal').classList.remove('active');
+        });
+        
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target.id === 'modal') {
+                document.getElementById('modal').classList.remove('active');
+            }
+        });
+        
+        document.getElementById('prevMonth').addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 6) currentMonth = 6;
+            renderCalendar();
+        });
+        
+        document.getElementById('nextMonth').addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 7) currentMonth = 7;
+            renderCalendar();
+        });
+        
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+                const subtitle = document.querySelector('.hero p');
+                const tabNames = { calendar: '赛程日历', standings: '小组积分表', brackets: '淘汰赛对阵图' };
+                subtitle.textContent = `美加墨世界杯 · ${tabNames[btn.dataset.tab]}`;
+                document.title = `2026 世界杯 - ${tabNames[btn.dataset.tab]}`;
+                
+                if (btn.dataset.tab === 'standings') {
+                    renderStandings();
+                } else if (btn.dataset.tab === 'brackets') {
+                    renderBrackets();
+                }
+            });
+        });
+        
+        function renderStandings() {
+            const container = document.getElementById('standingsContainer');
+            const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+            const groupTeams = {
+                'A': ['墨西哥', '南非', '韩国', '捷克'],
+                'B': ['加拿大', '波黑', '卡塔尔', '瑞士'],
+                'C': ['巴西', '摩洛哥', '海地', '苏格兰'],
+                'D': ['美国', '澳大利亚', '土耳其', '巴拉圭'],
+                'E': ['德国', '科特迪瓦', '厄瓜多尔', '库拉索'],
+                'F': ['荷兰', '日本', '瑞典', '突尼斯'],
+                'G': ['比利时', '埃及', '伊朗', '新西兰'],
+                'H': ['西班牙', '沙特阿拉伯', '乌拉圭', '佛得角'],
+                'I': ['法国', '伊拉克', '挪威', '塞内加尔'],
+                'J': ['阿根廷', '奥地利', '约旦', '阿尔及利亚'],
+                'K': ['葡萄牙', '哥伦比亚', '乌兹别克斯坦', '民主刚果'],
+                'L': ['英格兰', '克罗地亚', '加纳', '巴拿马']
+            };
+
+            const teamFlags = {
+                '墨西哥': 'mx', '南非': 'za', '韩国': 'kr', '捷克': 'cz',
+                '加拿大': 'ca', '波黑': 'ba', '卡塔尔': 'qa', '瑞士': 'ch',
+                '巴西': 'br', '摩洛哥': 'ma', '海地': 'ht', '苏格兰': 'gb',
+                '美国': 'us', '澳大利亚': 'au', '土耳其': 'tr', '巴拉圭': 'py',
+                '德国': 'de', '科特迪瓦': 'ci', '厄瓜多尔': 'ec', '库拉索': 'cw',
+                '荷兰': 'nl', '日本': 'jp', '瑞典': 'se', '突尼斯': 'tn',
+                '比利时': 'be', '埃及': 'eg', '伊朗': 'ir', '新西兰': 'nz',
+                '西班牙': 'es', '沙特阿拉伯': 'sa', '乌拉圭': 'uy', '佛得角': 'cv',
+                '法国': 'fr', '伊拉克': 'iq', '挪威': 'no', '塞内加尔': 'sn',
+                '阿根廷': 'ar', '奥地利': 'at', '约旦': 'jo', '阿尔及利亚': 'dz',
+                '葡萄牙': 'pt', '哥伦比亚': 'co', '乌兹别克斯坦': 'uz', '民主刚果': 'cd',
+                '英格兰': 'gb-eng', '克罗地亚': 'hr', '加纳': 'gh', '巴拿马': 'pa'
+            };
+            
+            const groupMatches = {};
+            groups.forEach(g => {
+                groupMatches[g] = allMatches.filter(m => m.group_name === g);
+            });
+            
+            container.innerHTML = '<div class="standings-grid">' + 
+                groups.map(group => {
+                    const color = groupColors[group];
+                    const teams = groupTeams[group];
+                    const matches = groupMatches[group] || [];
+                    
+                    const teamStats = teams.map(team => {
+                        const teamMatches = matches.filter(m => m.home_team === team || m.away_team === team);
+                        let win = 0, draw = 0, lose = 0, gf = 0, ga = 0, yellow = 0, red = 0, points = 0;
+                        
+                        teamMatches.forEach(m => {
+                            const isHome = m.home_team === team;
+                            const scored = isHome ? (parseInt(m.home_score) || 0) : (parseInt(m.away_score) || 0);
+                            const conceded = isHome ? (parseInt(m.away_score) || 0) : (parseInt(m.home_score) || 0);
+                            const myYellow = isHome ? (m.home_yellow_card || 0) : (m.away_yellow_card || 0);
+                            const myRed = isHome ? (m.home_red_card || 0) : (m.away_red_card || 0);
+                            
+                            gf += scored;
+                            ga += conceded;
+                            yellow += myYellow;
+                            red += myRed;
+                            
+                            if (m.home_score !== '' && m.away_score !== '') {
+                                if (scored > conceded) { win++; points += 3; }
+                                else if (scored === conceded) { draw++; points += 1; }
+                                else { lose++; }
+                            }
+                        });
+                        
+                        return { team, win, draw, lose, gf, ga, gd: gf - ga, points, yellow, red };
+                    });
+                    
+                    teamStats.sort((a, b) => {
+                        if (b.points !== a.points) return b.points - a.points;
+                        if (b.gd !== a.gd) return b.gd - a.gd;
+                        return b.gf - a.gf;
+                    });
+                    
+                    return `
+                        <div class="standings-table">
+                            <div class="standings-header" style="border-left: 4px solid ${color}">第${group}组</div>
+                            <table class="standings-main">
+                                <thead>
+                                    <tr>
+                                        <th class="rank-col">#</th>
+                                        <th class="team-col">球队</th>
+                                        <th class="stat-col">赛</th>
+                                        <th class="stat-col">胜</th>
+                                        <th class="stat-col">平</th>
+                                        <th class="stat-col">负</th>
+                                        <th class="stat-col">进</th>
+                                        <th class="stat-col">失</th>
+                                        <th class="stat-col">净</th>
+                                        <th class="stat-col">积分</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${teamStats.map((s, i) => `
+                                        <tr class="team-row" data-group="${group}" data-team="${s.team}">
+                                            <td class="rank-col">${i + 1}</td>
+                                            <td class="team-col team-name"><span class="fi fi-${teamFlags[s.team] || 'xx'}" style="margin-right:8px;"></span>${s.team}</td>
+                                            <td class="stat-col">${s.win + s.draw + s.lose}</td>
+                                            <td class="stat-col">${s.win}</td>
+                                            <td class="stat-col">${s.draw}</td>
+                                            <td class="stat-col">${s.lose}</td>
+                                            <td class="stat-col">${s.gf}</td>
+                                            <td class="stat-col">${s.ga}</td>
+                                            <td class="stat-col ${s.gd > 0 ? 'positive' : s.gd < 0 ? 'negative' : ''}">${s.gd > 0 ? '+' : ''}${s.gd}</td>
+                                            <td class="stat-col points">${s.points}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                            <div class="h2h-section" id="h2h-${group}">
+                                <div class="h2h-toggle" onclick="toggleH2H('${group}')">组内对阵 ▼</div>
+                                <div class="h2h-content">
+                                    ${matches.map(m => `
+                                        <div class="h2h-match">
+                                            <span class="h2h-team ${m.home_team}">${m.home_team}</span>
+                                            <span class="h2h-score">${m.home_score || '-' } : ${m.away_score || '-'}</span>
+                                            <span class="h2h-team ${m.away_team}">${m.away_team}</span>
+                                            <span class="h2h-date">${m.match_date.slice(5)}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('') + '</div>';
+        }
+        
+        window.toggleH2H = function(group) {
+            const content = document.querySelector(`#h2h-${group} .h2h-content`);
+            const toggle = document.querySelector(`#h2h-${group} .h2h-toggle`);
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggle.innerHTML = '组内对阵 ▲';
+            } else {
+                content.style.display = 'none';
+                toggle.innerHTML = '组内对阵 ▼';
+            }
+        };
+        
+        function renderBrackets() {
+            const container = document.getElementById('bracketsContainer');
+            container.innerHTML = `
+                <div class="bracket-wrapper">
+                    <div class="bracket-section">
+                        <h3 class="bracket-section-title">上半区</h3>
+                        <div class="demo" id="bracket-upper"></div>
+                    </div>
+                    <div class="bracket-center-section">
+                        <h3 class="bracket-final-title">🏆 决赛</h3>
+                        <div class="demo" id="bracket-final"></div>
+                    </div>
+                    <div class="bracket-section">
+                        <h3 class="bracket-section-title">下半区</h3>
+                        <div class="demo" id="bracket-lower"></div>
+                    </div>
+                </div>
+            `;
+            
+            var upperBracket = {
+                teams: [
+                    ["A2", "B2"],
+                    ["C1", "F2"],
+                    ["E1", "A/B/C/D/F3"],
+                    ["F1", "C2"],
+                    ["E2", "I2"],
+                    ["I1", "C/D/F/G/H3"],
+                    ["A1", "C/E/F/H/I3"],
+                    ["L1", "E/H/I/J/K3"]
+                ],
+                results: [
+                    [
+                        [[null, null], [null, null], [null, null], [null, null], [null, null], [null, null], [null, null], [null, null]],
+                        [[null, null], [null, null], [null, null], [null, null]],
+                        [[null, null], [null, null]],
+                        [[null, null]]
+                    ]
+                ]
+            };
+            
+            var lowerBracket = {
+                teams: [
+                    ["G1", "A/E/H/I/J3"],
+                    ["D1", "B/E/F/I/J3"],
+                    ["H1", "J2"],
+                    ["K2", "L2"],
+                    ["B1", "E/F/G/I/J3"],
+                    ["D2", "G2"],
+                    ["J1", "H2"],
+                    ["K1", "D/E/I/J/L3"]
+                ],
+                results: [
+                    [
+                        [[null, null], [null, null], [null, null], [null, null], [null, null], [null, null], [null, null], [null, null]],
+                        [[null, null], [null, null], [null, null], [null, null]],
+                        [[null, null], [null, null]],
+                        [[null, null]]
+                    ]
+                ]
+            };
+            
+            var finalBracket = {
+                teams: [
+                    ["Winner Upper", "Winner Lower"]
+                ],
+                results: [
+                    [
+                        [[null, null]]
+                    ]
+                ]
+            };
+            
+            $('#bracket-upper').bracket({
+                init: upperBracket,
+                disableToolbar: true,
+                disableTeamEdit: true,
+                centerConnectors: true
+            });
+            
+            $('#bracket-lower').bracket({
+                init: lowerBracket,
+                disableToolbar: true,
+                disableTeamEdit: true,
+                centerConnectors: true
+            });
+            
+            $('#bracket-final').bracket({
+                init: finalBracket,
+                disableToolbar: true,
+                disableTeamEdit: true,
+                centerConnectors: true
+            });
+        }
+        
+        async function init() {
+            await fetchMatches();
+            renderLegend();
+            renderCalendar();
+            renderStandings();
+            renderBrackets();
+        }
+        
+        init();
+    </script>
+</body>
+</html>
