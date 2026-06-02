@@ -80,6 +80,36 @@
             margin-bottom: 30px;
         }
         
+        .reset-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            transition: all 0.3s;
+            z-index: 100;
+        }
+        
+        .reset-btn:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
+        }
+        
+        .reset-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
         .timezone-badge {
             display: inline-flex;
             align-items: center;
@@ -138,6 +168,10 @@
             max-width: 1400px;
             margin: 0 auto;
             padding: 0 20px 60px;
+        }
+        
+        #tab-brackets {
+            max-width: 100%;
         }
         
         .tab-content.active {
@@ -230,7 +264,10 @@
         .day-cell {
             background: var(--bg-card);
             border-radius: 12px;
-            min-height: 180px;
+            min-height: 280px;
+            height: auto;
+            padding: 12px;
+        }
             padding: 10px;
             border: 1px solid rgba(255,255,255,0.05);
             transition: all 0.3s ease;
@@ -415,6 +452,206 @@
             font-size: 1.2rem;
         }
         
+        .edit-form {
+            margin: 15px 0;
+        }
+        
+        .edit-teams-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+        }
+        
+        .edit-team-box {
+            text-align: center;
+            min-width: 120px;
+        }
+        
+        .edit-team-name {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+        
+        .edit-score-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .edit-score-input {
+            width: 60px;
+            height: 60px;
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            color: var(--text-primary);
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        .edit-score-input:focus {
+            border-color: var(--accent);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .edit-score-input::-webkit-inner-spin-button,
+        .edit-score-input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        .edit-score-input[type=number] {
+            -moz-appearance: textfield;
+        }
+        
+        .edit-cards-group {
+            margin-top: 20px;
+        }
+        
+        .edit-card-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 10px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+        }
+        
+        .edit-card-label {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .yellow-icon {
+            width: 16px;
+            height: 16px;
+            background: #eab308;
+            border-radius: 3px;
+        }
+        
+        .red-icon {
+            width: 16px;
+            height: 16px;
+            background: #ef4444;
+            border-radius: 3px;
+        }
+        
+        .edit-card-input {
+            width: 50px;
+            height: 36px;
+            text-align: center;
+            font-size: 1rem;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: var(--text-primary);
+            outline: none;
+        }
+        
+        .edit-card-input:focus {
+            border-color: var(--accent);
+        }
+        
+        .edit-card-input::-webkit-inner-spin-button,
+        .edit-card-input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        .edit-card-input[type=number] {
+            -moz-appearance: textfield;
+        }
+        
+        .edit-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+        
+        .edit-btn {
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        
+        .edit-btn-cancel {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-secondary);
+        }
+        
+        .edit-btn-cancel:hover {
+            background: rgba(255,255,255,0.15);
+            color: var(--text-primary);
+        }
+        
+        .edit-btn-save {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .edit-btn-save:hover {
+            background: #0d9668;
+            transform: translateY(-2px);
+        }
+        
+        .edit-btn-save:disabled {
+            background: rgba(16, 185, 129, 0.3);
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .edit-match-info {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .edit-match-info span {
+            margin: 0 10px;
+        }
+        
+        .edit-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--accent);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            z-index: 2000;
+            transition: transform 0.3s ease;
+        }
+        
+        .edit-toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .edit-toast.error {
+            background: #ef4444;
+        }
+        
         .standings-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -480,6 +717,47 @@
         
         .standings-table .negative {
             color: #ef4444;
+        }
+        
+        .fair-play-badge {
+            margin-left: 5px;
+            font-size: 0.75rem;
+        }
+        
+        .status-badge {
+            margin-left: 6px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        
+        .status-badge.locked {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        .status-badge.second {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        
+        .status-badge.eliminated {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            margin-left: 4px;
+        }
+        
+        tr.eliminated {
+            opacity: 0.5;
+        }
+        
+        tr.first-locked {
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        tr.second-locked {
+            background: rgba(59, 130, 246, 0.08);
         }
         
         .standings-table .stat-col {
@@ -562,119 +840,311 @@
             overflow-x: auto;
         }
         
+        .brackets-container {
+            overflow-x: auto;
+            overflow-y: visible;
+            width: 100%;
+            padding-bottom: 10px;
+        }
+        
         .bracket-wrapper {
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            gap: 40px;
-            padding: 40px 20px;
-            overflow-x: auto;
+            gap: 30px;
+            padding: 30px 15px 40px;
+            min-width: max-content;
+            position: relative;
+            margin: 0 auto;
         }
         
-        .bracket-section {
+        .center-connectors {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .bracket-half {
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
+            gap: 12px;
         }
         
-        .bracket-section-title {
-            font-size: 1.1rem;
+        .bracket-half-title {
+            font-size: 1rem;
             font-weight: 700;
             color: var(--text-primary);
-            margin-bottom: 20px;
-            padding: 10px 20px;
+            padding: 8px 20px;
             background: var(--bg-card);
             border-radius: 8px;
             border-left: 4px solid;
         }
         
-        .bracket-section:first-child .bracket-section-title {
-            border-left-color: #ef4444;
-            color: #ef4444;
+        .upper-title { border-left-color: #ef4444; color: #ef4444; }
+        .lower-title { border-left-color: #3b82f6; color: #3b82f6; }
+        
+        .bracket-grid-wrap {
+            position: relative;
         }
         
-        .bracket-section:last-child .bracket-section-title {
-            border-left-color: #3b82f6;
-            color: #3b82f6;
+        .bracket-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 110px);
+            column-gap: 28px;
+            row-gap: 0;
+            padding: 10px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .upper-grid,
+        .lower-grid {
+            grid-template-rows: repeat(16, 56px);
+        }
+        
+        .connectors-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .connector-line {
+            fill: none;
+            stroke: #475569;
+            stroke-width: 1.5;
+        }
+        
+        .connector-line.winner {
+            stroke: #10b981;
+            stroke-width: 2.5;
+        }
+        
+        .connector-line.tbd {
+            stroke-dasharray: 4,3;
+            stroke: rgba(255,255,255,0.2);
+        }
+        
+        .round-header {
+            position: absolute;
+            top: -28px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        
+        .match-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .kb-card {
+            width: 100%;
+            height: 56px;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .kb-card:hover {
+            transform: scale(1.04);
+            border-color: var(--accent);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+            z-index: 5;
+        }
+        
+        .kb-card .match-no {
+            font-size: 0.55rem;
+            color: var(--text-secondary);
+            background: rgba(255,255,255,0.04);
+            padding: 1px 6px;
+            line-height: 1.2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 14px;
+            box-sizing: border-box;
+        }
+        
+        .kb-card .match-no .venue-info {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            max-width: 78px;
+            overflow: hidden;
+        }
+        
+        .kb-card .match-no .venue-flag {
+            font-size: 0.7rem;
+            flex-shrink: 0;
+        }
+        
+        .kb-card .match-no .venue-city {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 55px;
+        }
+        
+        .kb-card .team {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2px 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.7rem;
+            line-height: 1.2;
+            flex: 1;
+            min-height: 0;
+        }
+        
+        .kb-card .team:last-child {
+            border-bottom: none;
+        }
+        
+        .kb-card .team.winner {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, transparent 100%);
+        }
+        
+        .kb-card .team.loser {
+            opacity: 0.4;
+        }
+        
+        .kb-card .team-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 110px;
+        }
+        
+        .kb-card .team-name.tbd {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        
+        .kb-card .team-score {
+            font-weight: 700;
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            min-width: 18px;
+            text-align: right;
+        }
+        
+        .kb-card .team.winner .team-score {
+            color: var(--accent);
+        }
+        
+        .kb-card .match-meta {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1px 6px;
+            background: rgba(0,0,0,0.3);
+            font-size: 0.55rem;
+            color: var(--text-secondary);
+            line-height: 1.2;
+            height: 14px;
+            box-sizing: border-box;
+        }
+        
+        .kb-card .match-meta .meta-time {
+            font-weight: 600;
         }
         
         .bracket-center-section {
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding-top: 100px;
+            justify-content: center;
+            gap: 30px;
+            height: 916px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .final-block,
+        .third-block {
+            text-align: center;
         }
         
         .bracket-final-title {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: #fbbf24;
-            margin-bottom: 20px;
-            font-weight: 700;
-            padding: 10px 24px;
+            margin-bottom: 12px;
+            font-weight: 900;
+            padding: 8px 24px;
             background: var(--bg-card);
-            border-radius: 12px;
+            border-radius: 10px;
+            border: 2px solid #fbbf24;
+            display: inline-block;
+        }
+        
+        .fifa-trophy {
+            display: block;
+            margin: 0 auto 10px;
+            width: 80px;
+            height: 80px;
+            filter: drop-shadow(0 0 12px rgba(252, 211, 77, 0.5))
+                    drop-shadow(0 0 4px rgba(252, 211, 77, 0.8));
+            animation: trophyGlow 2.4s ease-in-out infinite;
+        }
+        
+        @keyframes trophyGlow {
+            0%, 100% {
+                filter: drop-shadow(0 0 12px rgba(252, 211, 77, 0.5))
+                        drop-shadow(0 0 4px rgba(252, 211, 77, 0.8));
+                transform: translateY(0);
+            }
+            50% {
+                filter: drop-shadow(0 0 20px rgba(252, 211, 77, 0.85))
+                        drop-shadow(0 0 8px rgba(252, 211, 77, 1));
+                transform: translateY(-3px);
+            }
+        }
+        
+        .kb-card.final {
+            width: 150px;
+            height: 56px;
             border: 2px solid #fbbf24;
         }
         
-        .jQBracket .demo {
-            background: transparent !important;
+        .kb-card.third {
+            width: 150px;
+            height: 56px;
+            border: 1.5px solid #cd7f32;
         }
         
-        .jQBracket .match {
-            background: var(--bg-card) !important;
-            border: 1px solid rgba(255,255,255,0.1) !important;
-        }
-        
-        .jQBracket .team {
-            background: var(--bg-card) !important;
-            color: var(--text-primary) !important;
-            font-size: 0.8rem !important;
-            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
-        }
-        
-        .jQBracket .team:first-child {
-            border-bottom: 1px solid rgba(255,255,255,0.15) !important;
-        }
-        
-        .jQBracket .team div.label {
-            color: var(--text-primary) !important;
-            padding: 4px 8px !important;
-        }
-        
-        .jQBracket .team div.score {
-            background: rgba(16, 185, 129, 0.1) !important;
-            color: var(--accent) !important;
-            font-weight: 600 !important;
-        }
-        
-        .jQBracket .team.win div.score {
-            color: #10b981 !important;
-        }
-        
-        .jQBracket .team.lose div.score {
-            color: #ef4444 !important;
-        }
-        
-        .jQBracket .connector {
-            border-color: rgba(16, 185, 129, 0.4) !important;
-        }
-        
-        .jQBracket .connector div.connector {
-            border-color: rgba(16, 185, 129, 0.4) !important;
-        }
-        
-        .jQBracket .np .team {
-            background: rgba(255,255,255,0.05) !important;
-            color: var(--text-secondary) !important;
-        }
-        
-        .jQBracket .bubble {
-            color: var(--accent) !important;
-        }
-        
-        .jQBracket .win .bubble {
-            background-color: rgba(16, 185, 129, 0.2) !important;
-            color: var(--accent) !important;
+        .third-title {
+            font-size: 0.9rem;
+            color: #cd7f32;
+            margin-bottom: 10px;
+            font-weight: 700;
+            padding: 6px 18px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            border: 1.5px solid #cd7f32;
+            display: inline-block;
         }
         
         .jQBracket .lose .bubble {
@@ -711,7 +1181,7 @@
             }
             
             .day-cell {
-                min-height: 140px;
+                min-height: 200px;
                 padding: 8px;
             }
             
@@ -810,14 +1280,22 @@
         let currentYear = 2026;
         let currentMonth = 6;
         let allMatches = [];
+        let matchData = {};
         
         async function fetchMatches() {
             try {
                 const response = await fetch(`${API_BASE}/matches?year=${currentYear}`);
                 allMatches = await response.json();
+                matchData = {};
+                allMatches.forEach(m => {
+                    if (m.id !== undefined && m.id !== null) {
+                        matchData[String(m.id)] = m;
+                    }
+                });
             } catch (error) {
                 console.error('获取比赛数据失败:', error);
                 allMatches = [];
+                matchData = {};
             }
         }
         
@@ -908,7 +1386,7 @@
                 
                 dayCell.innerHTML = `<div class="day-number">${day}</div>`;
                 
-                matches.slice(0, 4).forEach(match => {
+                matches.forEach(match => {
                     const matchItem = document.createElement('div');
                     matchItem.className = `match-item ${getGroupClass(match.group_name)}`;
                     matchItem.innerHTML = `
@@ -916,21 +1394,10 @@
                         <div class="match-teams">${match.home_team} vs ${match.away_team}</div>
                         <div class="match-venue">${getVenueFlag(match.venue)}${match.venue}</div>
                     `;
-                    matchItem.addEventListener('click', () => showMatchDetail(match));
+                    matchItem.addEventListener('click', () => showEditForm(match));
                     dayCell.appendChild(matchItem);
                 });
-                
-                if (matches.length > 4) {
-                    const more = document.createElement('div');
-                    more.className = 'match-item';
-                    more.style.background = 'rgba(255,255,255,0.1)';
-                    more.textContent = `+${matches.length - 4} 场`;
-                    more.style.textAlign = 'center';
-                    more.style.cursor = 'pointer';
-                    more.addEventListener('click', () => showDayMatches(dateStr, matches));
-                    dayCell.appendChild(more);
-                }
-                
+
                 grid.appendChild(dayCell);
             }
         }
@@ -964,7 +1431,7 @@
             
             title.textContent = `${dateStr} 赛程`;
             body.innerHTML = matches.map(match => `
-                <div class="match-item ${getGroupClass(match.group_name)}" style="margin-bottom: 15px; padding: 15px;">
+                <div class="match-item ${getGroupClass(match.group_name)}" style="margin-bottom: 15px; padding: 15px; cursor: pointer;" onclick="showEditForm(match)">
                     <div style="font-size: 0.9rem; margin-bottom: 8px;">${match.stage}</div>
                     <div style="font-size: 1.2rem; font-weight: 700; margin-bottom: 5px;">
                         ${match.home_team} vs ${match.away_team}
@@ -978,13 +1445,11 @@
             modal.classList.add('active');
         }
         
-        document.getElementById('modalClose').addEventListener('click', () => {
-            document.getElementById('modal').classList.remove('active');
-        });
+        document.getElementById('modalClose').addEventListener('click', closeModal);
         
         document.getElementById('modal').addEventListener('click', (e) => {
             if (e.target.id === 'modal') {
-                document.getElementById('modal').classList.remove('active');
+                closeModal();
             }
         });
         
@@ -1086,13 +1551,53 @@
                             }
                         });
                         
-                        return { team, win, draw, lose, gf, ga, gd: gf - ga, points, yellow, red };
+                        const fairPlay = yellow * 1 + red * 4;
+                        return { team, win, draw, lose, gf, ga, gd: gf - ga, points, yellow, red, fairPlay };
+                    });
+                    
+                    const h2hStats = {};
+                    teams.forEach(t => h2hStats[t] = { gd: 0, gf: 0 });
+                    matches.forEach(m => {
+                        if (m.home_score === '' || m.away_score === '') return;
+                        if (teams.includes(m.home_team) && teams.includes(m.away_team)) {
+                            const homeGoals = parseInt(m.home_score) || 0;
+                            const awayGoals = parseInt(m.away_score) || 0;
+                            h2hStats[m.home_team].gf += homeGoals;
+                            h2hStats[m.home_team].gd += homeGoals - awayGoals;
+                            h2hStats[m.away_team].gf += awayGoals;
+                            h2hStats[m.away_team].gd += awayGoals - homeGoals;
+                        }
+                    });
+                    
+                    const fifaRanks = {
+                        '墨西哥': 13, '南非': 54, '韩国': 27, '捷克': 34,
+                        '加拿大': 42, '波黑': 61, '卡塔尔': 67, '瑞士': 16,
+                        '巴西': 3, '摩洛哥': 22, '海地': 88, '苏格兰': 40,
+                        '美国': 15, '澳大利亚': 26, '土耳其': 24, '巴拉圭': 48,
+                        '德国': 10, '科特迪瓦': 31, '厄瓜多尔': 17, '库拉索': 75,
+                        '荷兰': 7, '日本': 23, '瑞典': 25, '突尼斯': 41,
+                        '比利时': 5, '埃及': 39, '伊朗': 20, '新西兰': 58,
+                        '西班牙': 8, '沙特阿拉伯': 45, '乌拉圭': 12, '佛得角': 76,
+                        '法国': 2, '伊拉克': 66, '挪威': 29, '塞内加尔': 18,
+                        '阿根廷': 1, '奥地利': 30, '约旦': 73, '阿尔及利亚': 32,
+                        '葡萄牙': 6, '哥伦比亚': 14, '乌兹别克斯坦': 79, '民主刚果': 68,
+                        '英格兰': 4, '克罗地亚': 11, '加纳': 56, '巴拿马': 71
+                    };
+                    
+                    teamStats.forEach(s => {
+                        s.h2h_gd = h2hStats[s.team].gd;
+                        s.h2h_gf = h2hStats[s.team].gf;
+                        s.fifa_rank = fifaRanks[s.team] || 999;
                     });
                     
                     teamStats.sort((a, b) => {
                         if (b.points !== a.points) return b.points - a.points;
+                        if (b.h2h_gd !== a.h2h_gd) return b.h2h_gd - a.h2h_gd;
+                        if (b.h2h_gf !== a.h2h_gf) return b.h2h_gf - a.h2h_gf;
                         if (b.gd !== a.gd) return b.gd - a.gd;
-                        return b.gf - a.gf;
+                        if (b.gf !== a.gf) return b.gf - a.gf;
+                        if (a.fairPlay !== b.fairPlay) return a.fairPlay - b.fairPlay;
+                        return a.fifa_rank - b.fifa_rank;
                     });
                     
                     return `
@@ -1115,9 +1620,16 @@
                                 </thead>
                                 <tbody>
                                     ${teamStats.map((s, i) => `
-                                        <tr class="team-row" data-group="${group}" data-team="${s.team}">
+                                        <tr class="team-row ${s.is_eliminated ? 'eliminated' : s.is_first_locked ? 'first-locked' : s.is_second_locked ? 'second-locked' : ''}" data-group="${group}" data-team="${s.team}">
                                             <td class="rank-col">${i + 1}</td>
-                                            <td class="team-col team-name"><span class="fi fi-${teamFlags[s.team] || 'xx'}" style="margin-right:8px;"></span>${s.team}</td>
+                                            <td class="team-col team-name">
+                                                <span class="fi fi-${teamFlags[s.team] || 'xx'}" style="margin-right:8px;"></span>
+                                                ${s.team}
+                                                ${s.is_first_locked ? '<span class="status-badge locked" title="已锁定第1名">第①</span>' : ''}
+                                                ${s.is_second_locked && !s.is_first_locked ? '<span class="status-badge second" title="已锁定前二">前②</span>' : ''}
+                                                ${s.is_eliminated ? '<span class="status-badge eliminated" title="已被淘汰">✖</span>' : ''}
+                                                ${s.fairPlay > 0 ? `<span class="fair-play-badge" title="公平竞赛分: ${s.fairPlay}分">⚠️</span>` : ''}
+                                            </td>
                                             <td class="stat-col">${s.win + s.draw + s.lose}</td>
                                             <td class="stat-col">${s.win}</td>
                                             <td class="stat-col">${s.draw}</td>
@@ -1160,98 +1672,538 @@
             }
         };
         
+        const KB_BRACKET_MAPPING = {
+            "73": { to: "89", slot: "home" },
+            "75": { to: "89", slot: "away" },
+            "74": { to: "90", slot: "home" },
+            "77": { to: "90", slot: "away" },
+            "76": { to: "91", slot: "home" },
+            "78": { to: "91", slot: "away" },
+            "79": { to: "92", slot: "home" },
+            "80": { to: "92", slot: "away" },
+            "81": { to: "94", slot: "home" },
+            "82": { to: "94", slot: "away" },
+            "83": { to: "93", slot: "home" },
+            "84": { to: "93", slot: "away" },
+            "85": { to: "96", slot: "home" },
+            "87": { to: "96", slot: "away" },
+            "86": { to: "95", slot: "home" },
+            "88": { to: "95", slot: "away" },
+            "89": { to: "97", slot: "home" },
+            "90": { to: "97", slot: "away" },
+            "91": { to: "99", slot: "home" },
+            "92": { to: "99", slot: "away" },
+            "93": { to: "98", slot: "home" },
+            "94": { to: "98", slot: "away" },
+            "95": { to: "100", slot: "home" },
+            "96": { to: "100", slot: "away" },
+            "97": { to: "sf1", slot: "home" },
+            "100": { to: "sf1", slot: "away" },
+            "98": { to: "sf2", slot: "home" },
+            "99": { to: "sf2", slot: "away" },
+            "sf1": { to: "final", slot: "home" },
+            "sf2": { to: "final", slot: "away" }
+        };
+        
+        const UPPER_HALF = {
+            r16: [
+                { id: "73", row: 1 },
+                { id: "75", row: 3 },
+                { id: "74", row: 5 },
+                { id: "77", row: 7 },
+                { id: "86", row: 9 },
+                { id: "88", row: 11 },
+                { id: "85", row: 13 },
+                { id: "87", row: 15 }
+            ],
+            r8: [
+                { id: "89", rows: [1, 4] },
+                { id: "90", rows: [5, 8] },
+                { id: "95", rows: [9, 12] },
+                { id: "96", rows: [13, 16] }
+            ],
+            r4: [
+                { id: "97", rows: [1, 8] },
+                { id: "100", rows: [9, 16] }
+            ],
+            sf: [
+                { id: "sf1", rows: [1, 16] }
+            ]
+        };
+        
+        const LOWER_HALF = {
+            r16: [
+                { id: "76", row: 1 },
+                { id: "78", row: 3 },
+                { id: "79", row: 5 },
+                { id: "80", row: 7 },
+                { id: "83", row: 9 },
+                { id: "84", row: 11 },
+                { id: "81", row: 13 },
+                { id: "82", row: 15 }
+            ],
+            r8: [
+                { id: "91", rows: [1, 4] },
+                { id: "92", rows: [5, 8] },
+                { id: "93", rows: [9, 12] },
+                { id: "94", rows: [13, 16] }
+            ],
+            r4: [
+                { id: "99", rows: [1, 8] },
+                { id: "98", rows: [9, 16] }
+            ],
+            sf: [
+                { id: "sf2", rows: [1, 16] }
+            ]
+        };
+        
+        function kbGetMatch(id) {
+            return matchData[id] || {
+                id: id,
+                home_team: '待定',
+                away_team: '待定',
+                home_score: null,
+                away_score: null,
+                match_date: '',
+                match_time: '',
+                venue: '',
+                city: '',
+                status: 'scheduled'
+            };
+        }
+        
+        function kbGetWinner(match) {
+            if (!match || match.home_score === null || match.home_score === '' ||
+                match.away_score === null || match.away_score === '') return null;
+            const h = parseInt(match.home_score);
+            const a = parseInt(match.away_score);
+            if (isNaN(h) || isNaN(a)) return null;
+            if (h > a) return 'home';
+            if (a > h) return 'away';
+            return null;
+        }
+        
+        function kbApplyAdvancements() {
+            Object.keys(KB_BRACKET_MAPPING).forEach(srcId => {
+                const match = matchData[srcId];
+                if (!match) return;
+                const winner = kbGetWinner(match);
+                if (!winner) return;
+                const { to, slot } = KB_BRACKET_MAPPING[srcId];
+                const teamName = winner === 'home' ? match.home_team : match.away_team;
+                const target = kbGetMatch(to);
+                if (slot === 'home') target.home_team = teamName;
+                else target.away_team = teamName;
+                matchData[to] = target;
+            });
+        }
+        
+        function kbCreateCard(matchId, extraClass = '', isVisible = true) {
+            const match = kbGetMatch(matchId);
+            const winner = kbGetWinner(match);
+            const isScheduled = !match.home_score && !match.away_score;
+            
+            const homeWin = winner === 'home' ? 'winner' : (winner === 'away' ? 'loser' : '');
+            const awayWin = winner === 'away' ? 'winner' : (winner === 'home' ? 'loser' : '');
+            
+            const homeName = match.home_team || '待定';
+            const awayName = match.away_team || '待定';
+            const homeScore = isScheduled ? '-' : (match.home_score ?? '-');
+            const awayScore = isScheduled ? '-' : (match.away_score ?? '-');
+            
+            const venueFlag = getVenueFlag(match.venue);
+            const timeText = match.match_time || '';
+            const cityText = match.city || match.venue || '';
+            
+            const matchNoMap = {
+                'sf1': '半决赛①',
+                'sf2': '半决赛②',
+                'final': '决赛',
+                'third': '三四名决赛'
+            };
+            const displayMatchNo = matchNoMap[matchId] || `${matchId}`;
+            const visibilityStyle = isVisible ? '' : 'visibility: hidden; opacity: 0.3;';
+            
+            return `
+                <div class="kb-card ${extraClass}" data-match-id="${matchId}" style="${visibilityStyle}">
+                    <div class="match-no">
+                        <span class="match-num">${displayMatchNo}</span>
+                        <span class="venue-info">
+                            <span class="venue-flag">${venueFlag}</span>
+                            <span class="venue-city">${cityText}</span>
+                        </span>
+                    </div>
+                    <div class="team ${homeWin}">
+                        <span class="team-name ${!match.home_team || match.home_team === '待定' ? 'tbd' : ''}">${homeName}</span>
+                        <span class="team-score">${homeScore}</span>
+                    </div>
+                    <div class="team ${awayWin}">
+                        <span class="team-name ${!match.away_team || match.away_team === '待定' ? 'tbd' : ''}">${awayName}</span>
+                        <span class="team-score">${awayScore}</span>
+                    </div>
+                    <div class="match-meta">
+                        <span class="meta-time">${timeText}</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function kbRenderHalf(halfData, gridId, svgId, isUpper) {
+            const grid = document.getElementById(gridId);
+            const svg = document.getElementById(svgId);
+            let html = '';
+            
+            // 上半场: 1/16→col1, 1/8→col2, 1/4→col3, sf→col4
+            // 下半场: 1/16→col4, 1/8→col3, 1/4→col2, sf→col1
+            const r16Col = isUpper ? 1 : 4;
+            const r8Col = isUpper ? 2 : 3;
+            const r4Col = isUpper ? 3 : 2;
+            const sfCol = isUpper ? 4 : 1;
+            
+            halfData.r16.forEach(m => {
+                html += `<div class="match-cell" style="grid-column: ${r16Col}; grid-row: ${m.row};">${kbCreateCard(m.id)}</div>`;
+            });
+            
+            halfData.r8.forEach(m => {
+                html += `<div class="match-cell" style="grid-column: ${r8Col}; grid-row: ${m.rows[0]} / ${m.rows[1]}; align-self: center;">${kbCreateCard(m.id)}</div>`;
+            });
+            
+            halfData.r4.forEach(m => {
+                html += `<div class="match-cell" style="grid-column: ${r4Col}; grid-row: ${m.rows[0]} / ${m.rows[1]}; align-self: center;">${kbCreateCard(m.id)}</div>`;
+            });
+            
+            halfData.sf.forEach(m => {
+                html += `<div class="match-cell" style="grid-column: ${sfCol}; grid-row: ${m.rows[0]} / ${m.rows[1]}; align-self: center;">${kbCreateCard(m.id)}</div>`;
+            });
+            
+            grid.innerHTML = html;
+            
+            // 绘制 SVG 连接线
+            drawConnectors(halfData, grid, svg, isUpper);
+        }
+        
+        function drawConnectors(halfData, grid, svg, isUpper) {
+            if (!svg) return;
+            
+            const cardW = 110;
+            const colGap = 28;
+            const rowH = 56;
+            const padding = 10;
+            
+            const gridWidth = cardW * 4 + colGap * 3 + padding * 2;
+            const gridHeight = 16 * rowH + padding * 2;
+            
+            svg.setAttribute('viewBox', `0 0 ${gridWidth} ${gridHeight}`);
+            svg.setAttribute('preserveAspectRatio', 'none');
+            
+            let paths = '';
+            
+            // 列号映射 (上半场: 1/16→col1, 下半场: 1/16→col4)
+            const r16Col = isUpper ? 1 : 4;
+            const r8Col = isUpper ? 2 : 3;
+            const r4Col = isUpper ? 3 : 2;
+            const sfCol = isUpper ? 4 : 1;
+            
+            // 1/16决赛卡片位置
+            const r16Pos = {};
+            halfData.r16.forEach(m => {
+                const top = padding + (m.row - 1) * rowH;
+                const leftX = padding + (r16Col - 1) * (cardW + colGap);
+                r16Pos[m.id] = {
+                    leftX: leftX,
+                    rightX: leftX + cardW,
+                    centerY: top + rowH / 2
+                };
+            });
+            
+            // 1/8决赛卡片位置
+            const r8Pos = {};
+            halfData.r8.forEach(m => {
+                const top = padding + (m.rows[0] - 1) * rowH;
+                const bottom = padding + (m.rows[1] - 1) * rowH;
+                const leftX = padding + (r8Col - 1) * (cardW + colGap);
+                r8Pos[m.id] = {
+                    leftX: leftX,
+                    rightX: leftX + cardW,
+                    centerY: (top + bottom) / 2
+                };
+            });
+            
+            // 1/4决赛卡片位置
+            const r4Pos = {};
+            halfData.r4.forEach(m => {
+                const top = padding + (m.rows[0] - 1) * rowH;
+                const bottom = padding + (m.rows[1] - 1) * rowH;
+                const leftX = padding + (r4Col - 1) * (cardW + colGap);
+                r4Pos[m.id] = {
+                    leftX: leftX,
+                    rightX: leftX + cardW,
+                    centerY: (top + bottom) / 2
+                };
+            });
+            
+            // 半决赛卡片位置
+            const sfPos = {};
+            halfData.sf.forEach(m => {
+                const top = padding + (m.rows[0] - 1) * rowH;
+                const bottom = padding + (m.rows[1] - 1) * rowH;
+                const leftX = padding + (sfCol - 1) * (cardW + colGap);
+                sfPos[m.id] = {
+                    leftX: leftX,
+                    rightX: leftX + cardW,
+                    centerY: (top + bottom) / 2
+                };
+            });
+            
+            // 找父母函数
+            const findParent = (childId) => {
+                return Object.keys(KB_BRACKET_MAPPING).filter(k => KB_BRACKET_MAPPING[k].to === childId);
+            };
+            
+            // 绘制连接线 - 从子到父 (从右到左在上半场, 从左到右在下半场)
+            const drawLine = (parent, child) => {
+                let sourceX, targetX;
+                if (isUpper) {
+                    // 上半场: 父在左, 子在右
+                    sourceX = parent.rightX;
+                    targetX = child.leftX;
+                } else {
+                    // 下半场: 父在右, 子在左
+                    sourceX = parent.leftX;
+                    targetX = child.rightX;
+                }
+                const midX = (sourceX + targetX) / 2;
+                const isWinner = kbGetWinner(matchData[Object.keys(r16Pos).find(k => r16Pos[k] === parent) ||
+                                                          Object.keys(r8Pos).find(k => r8Pos[k] === parent) ||
+                                                          Object.keys(r4Pos).find(k => r4Pos[k] === parent)]) !== null;
+                let cls = 'connector-line';
+                if (isWinner) cls += ' winner';
+                
+                const path = isUpper
+                    ? `M ${sourceX} ${parent.centerY} L ${midX} ${parent.centerY} L ${midX} ${child.centerY} L ${targetX} ${child.centerY}`
+                    : `M ${sourceX} ${parent.centerY} L ${midX} ${parent.centerY} L ${midX} ${child.centerY} L ${targetX} ${child.centerY}`;
+                paths += `<path class="${cls}" d="${path}" />`;
+            };
+            
+            const getPos = (id) => r16Pos[id] || r8Pos[id] || r4Pos[id];
+            
+            // r16 -> r8
+            halfData.r8.forEach(m => {
+                const parents = findParent(m.id);
+                parents.forEach(parentId => {
+                    const p = getPos(parentId);
+                    const c = r8Pos[m.id];
+                    if (p && c) drawLine(p, c);
+                });
+            });
+            
+            // r8 -> r4
+            halfData.r4.forEach(m => {
+                const parents = findParent(m.id);
+                parents.forEach(parentId => {
+                    const p = getPos(parentId);
+                    const c = r4Pos[m.id];
+                    if (p && c) drawLine(p, c);
+                });
+            });
+            
+            // r4 -> sf
+            halfData.sf.forEach(m => {
+                const parents = findParent(m.id);
+                parents.forEach(parentId => {
+                    const p = getPos(parentId);
+                    const c = sfPos[m.id];
+                    if (p && c) drawLine(p, c);
+                });
+            });
+            
+            svg.innerHTML = paths;
+        }
+        
+        function drawCenterConnectors() {
+            const wrapper = document.getElementById('bracketWrapper');
+            const svg = document.getElementById('centerConnectors');
+            if (!wrapper || !svg) return;
+            
+            const sf1Card = wrapper.querySelector('[data-match-id="sf1"]');
+            const sf2Card = wrapper.querySelector('[data-match-id="sf2"]');
+            const finalCard = wrapper.querySelector('[data-match-id="final"]');
+            const thirdCard = wrapper.querySelector('[data-match-id="third"]');
+            
+            if (!sf1Card || !sf2Card || !finalCard || !thirdCard) return;
+            
+            const wrapperRect = wrapper.getBoundingClientRect();
+            const getCenter = (el) => {
+                const r = el.getBoundingClientRect();
+                return {
+                    left: r.left - wrapperRect.left,
+                    right: r.right - wrapperRect.left,
+                    centerY: r.top - wrapperRect.top + r.height / 2
+                };
+            };
+            
+            const sf1 = getCenter(sf1Card);
+            const sf2 = getCenter(sf2Card);
+            const finalC = getCenter(finalCard);
+            const thirdC = getCenter(thirdCard);
+            
+            svg.setAttribute('viewBox', `0 0 ${wrapperRect.width} ${wrapperRect.height}`);
+            svg.setAttribute('width', wrapperRect.width);
+            svg.setAttribute('height', wrapperRect.height);
+            
+            const paths = [];
+            
+            // sf1 → final (实线 绿色) - sf1 在 final 左侧, 从 sf1.right 进入 final.left
+            const midX1 = (sf1.right + finalC.left) / 2;
+            paths.push(`<path class="connector-line winner" d="M ${sf1.right} ${sf1.centerY} L ${midX1} ${sf1.centerY} L ${midX1} ${finalC.centerY} L ${finalC.left} ${finalC.centerY}" />`);
+            
+            // sf2 → final (实线 绿色) - sf2 在 final 右侧, 从 sf2.left 进入 final.right (与上半区对称)
+            const midX2 = (sf2.left + finalC.right) / 2;
+            paths.push(`<path class="connector-line winner" d="M ${sf2.left} ${sf2.centerY} L ${midX2} ${sf2.centerY} L ${midX2} ${finalC.centerY} L ${finalC.right} ${finalC.centerY}" />`);
+            
+            // sf1 → third (虚线 灰色) - sf1 在 third 左侧
+            const midX3 = (sf1.right + thirdC.left) / 2;
+            paths.push(`<path class="connector-line tbd" d="M ${sf1.right} ${sf1.centerY} L ${midX3} ${sf1.centerY} L ${midX3} ${thirdC.centerY} L ${thirdC.left} ${thirdC.centerY}" />`);
+            
+            // sf2 → third (虚线 灰色) - sf2 在 third 右侧, 与上半区对称
+            const midX4 = (sf2.left + thirdC.right) / 2;
+            paths.push(`<path class="connector-line tbd" d="M ${sf2.left} ${sf2.centerY} L ${midX4} ${sf2.centerY} L ${midX4} ${thirdC.centerY} L ${thirdC.right} ${thirdC.centerY}" />`);
+            
+            svg.innerHTML = paths.join('');
+        }
+        
+        function isGroupDetermined(group, matches) {
+            const groupMatches = matches.filter(m => m.group_name === group);
+            const allPlayed = groupMatches.length > 0 && groupMatches.every(m => 
+                m.home_score !== '' && m.home_score !== null && 
+                m.away_score !== '' && m.away_score !== null
+            );
+            return allPlayed;
+        }
+        
+        function isMatchVisible(matchId, allMatches, determinedGroups) {
+            const r16Dependencies = {
+                '73': ['A', 'B'], '75': ['E'], '74': ['C', 'F'], '77': ['E', 'I'],
+                '86': ['D', 'G'], '88': ['K', 'D'], '85': ['B'], '87': ['K', 'J'],
+                '76': ['F', 'C'], '78': ['I'], '79': ['A'], '80': ['L'],
+                '83': ['H', 'J'], '84': ['K', 'L'], '81': ['G'], '82': ['D', 'B']
+            };
+            
+            if (r16Dependencies[matchId]) {
+                return r16Dependencies[matchId].every(g => determinedGroups.has(g));
+            }
+            
+            if (['89', '90', '91', '92', '93', '94', '95', '96'].includes(matchId)) {
+                return true;
+            }
+            
+            if (matchId === '97' || matchId === '100') return true;
+            if (matchId === '99' || matchId === '98') return true;
+            if (matchId === 'sf1' || matchId === 'sf2') return true;
+            if (matchId === 'final' || matchId === 'third') return true;
+            
+            return true;
+        }
+        
         function renderBrackets() {
+            const groupLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+            const determinedGroups = new Set();
+            groupLetters.forEach(g => {
+                if (isGroupDetermined(g, allMatches)) determinedGroups.add(g);
+            });
+            
+            kbApplyAdvancements();
+            
+            // 补全决赛、半决赛、3/4名决赛的信息
+            const finalMatch = kbGetMatch('final');
+            finalMatch.match_date = '2026-07-20';
+            finalMatch.match_time = '03:00';
+            finalMatch.venue = '纽约新泽西体育场';
+            finalMatch.city = '纽约';
+            matchData['final'] = finalMatch;
+            
+            const thirdMatch = kbGetMatch('third');
+            thirdMatch.match_date = '2026-07-19';
+            thirdMatch.match_time = '05:00';
+            thirdMatch.venue = '迈阿密体育场';
+            thirdMatch.city = '迈阿密';
+            matchData['third'] = thirdMatch;
+            
+            const sf1Match = kbGetMatch('sf1');
+            sf1Match.match_date = '2026-07-15';
+            sf1Match.match_time = '03:00';
+            sf1Match.venue = '达拉斯体育场';
+            sf1Match.city = '达拉斯';
+            matchData['sf1'] = sf1Match;
+            
+            const sf2Match = kbGetMatch('sf2');
+            sf2Match.match_date = '2026-07-16';
+            sf2Match.match_time = '03:00';
+            sf2Match.venue = '亚特兰大体育场';
+            sf2Match.city = '亚特兰大';
+            matchData['sf2'] = sf2Match;
+            
             const container = document.getElementById('bracketsContainer');
             container.innerHTML = `
-                <div class="bracket-wrapper">
-                    <div class="bracket-section">
-                        <h3 class="bracket-section-title">上半区</h3>
-                        <div class="demo" id="bracket-upper"></div>
+                <div class="bracket-wrapper" id="bracketWrapper">
+                    <svg class="center-connectors" id="centerConnectors"></svg>
+                    
+                    <div class="bracket-half">
+                        <div class="bracket-half-title upper-title">上半区</div>
+                        <div class="bracket-grid-wrap">
+                            <svg class="connectors-svg" id="upperConnectors"></svg>
+                            <div class="bracket-grid upper-grid" id="upperGrid">
+                                <div class="round-header" style="left: 10px;">1/16决赛</div>
+                                <div class="round-header" style="left: ${10 + 110 + 28}px;">1/8决赛</div>
+                                <div class="round-header" style="left: ${10 + (110 + 28) * 2}px;">1/4决赛</div>
+                                <div class="round-header" style="left: ${10 + (110 + 28) * 3}px;">半决赛</div>
+                            </div>
+                        </div>
                     </div>
+                    
                     <div class="bracket-center-section">
-                        <h3 class="bracket-final-title">🏆 决赛</h3>
-                        <div class="demo" id="bracket-final"></div>
+                        <div class="final-block">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" class="fifa-trophy">
+                                <circle cx="16" cy="9" r="6" fill="#FACB13"/>
+                                <path d="M14 5c-1 1-2 2-2 4s1 2 2 3c2 1 3-1 4-1s2 2 3 1c1-1 1-3 0-4s-2-1-3-2V5z" fill="#FFE066"/>
+                                <path d="M16 11c-1.5 0-3 1-3.5 2.5C12 14.5 12 17 13.5 18c.8.5 1.5.2 2 .5.8.5.5 1.5.5 2.5v3h-2v1h4v-1h-2v-3c0-1-.3-2 .5-2.5.5-.3 1.2 0 2-.5 1.5-1 1.5-3.5 1-4.5-.5-1.5-2-2.5-3.5-2.5z" fill="#DCA105"/>
+                                <path d="M12.5 13.5c.5-1 1.5-1.5 2.5-1.5s1 1 1 1.5-.5 1-1 1-1.5-.5-2.5-1z" fill="#B38000"/>
+                                <path d="M19.5 13.5c-.5-1-1.5-1.5-2.5-1.5s-1 1-1 1.5.5 1 1 1 1.5-.5 2.5-1z" fill="#B38000"/>
+                                <path d="M13.5 18c0 1 .5 2 1.5 2.5s1.5-.5 1.5-1.5v-2h-3v1z" fill="#B38000"/>
+                                <path d="M18.5 18c0 1-.5 2-1.5 2.5s-1.5-.5-1.5-1.5v-2h3v1z" fill="#B38000"/>
+                                <rect x="12" y="26" width="8" height="1.5" rx="0.5" fill="#0A5C36"/>
+                                <rect x="11.5" y="29" width="9" height="1.5" rx="0.5" fill="#0A5C36"/>
+                                <rect x="11.75" y="27.5" width="8.5" height="1.5" rx="0.3" fill="#DCA105"/>
+                            </svg>
+                            <div class="bracket-final-title">决赛</div>
+                            ${kbCreateCard('final', 'final')}
+                        </div>
+                        <div class="third-block">
+                            <div class="third-title">🥉 三四名决赛</div>
+                            ${kbCreateCard('third', 'third')}
+                        </div>
                     </div>
-                    <div class="bracket-section">
-                        <h3 class="bracket-section-title">下半区</h3>
-                        <div class="demo" id="bracket-lower"></div>
+                    
+                    <div class="bracket-half">
+                        <div class="bracket-half-title lower-title">下半区</div>
+                        <div class="bracket-grid-wrap">
+                            <svg class="connectors-svg" id="lowerConnectors"></svg>
+                            <div class="bracket-grid lower-grid" id="lowerGrid">
+                                <div class="round-header" style="left: 10px;">半决赛</div>
+                                <div class="round-header" style="left: ${10 + 110 + 28}px;">1/4决赛</div>
+                                <div class="round-header" style="left: ${10 + (110 + 28) * 2}px;">1/8决赛</div>
+                                <div class="round-header" style="left: ${10 + (110 + 28) * 3}px;">1/16决赛</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
             
-            var upperBracket = {
-                teams: [
-                    ["A2", "B2"],
-                    ["C1", "F2"],
-                    ["E1", "A/B/C/D/F3"],
-                    ["F1", "C2"],
-                    ["E2", "I2"],
-                    ["I1", "C/D/F/G/H3"],
-                    ["A1", "C/E/F/H/I3"],
-                    ["L1", "E/H/I/J/K3"]
-                ],
-                results: [
-                    [
-                        [[null, null], [null, null], [null, null], [null, null], [null, null], [null, null], [null, null], [null, null]],
-                        [[null, null], [null, null], [null, null], [null, null]],
-                        [[null, null], [null, null]],
-                        [[null, null]]
-                    ]
-                ]
-            };
+            kbRenderHalf(UPPER_HALF, 'upperGrid', 'upperConnectors', true);
+            kbRenderHalf(LOWER_HALF, 'lowerGrid', 'lowerConnectors', false);
             
-            var lowerBracket = {
-                teams: [
-                    ["G1", "A/E/H/I/J3"],
-                    ["D1", "B/E/F/I/J3"],
-                    ["H1", "J2"],
-                    ["K2", "L2"],
-                    ["B1", "E/F/G/I/J3"],
-                    ["D2", "G2"],
-                    ["J1", "H2"],
-                    ["K1", "D/E/I/J/L3"]
-                ],
-                results: [
-                    [
-                        [[null, null], [null, null], [null, null], [null, null], [null, null], [null, null], [null, null], [null, null]],
-                        [[null, null], [null, null], [null, null], [null, null]],
-                        [[null, null], [null, null]],
-                        [[null, null]]
-                    ]
-                ]
-            };
-            
-            var finalBracket = {
-                teams: [
-                    ["Winner Upper", "Winner Lower"]
-                ],
-                results: [
-                    [
-                        [[null, null]]
-                    ]
-                ]
-            };
-            
-            $('#bracket-upper').bracket({
-                init: upperBracket,
-                disableToolbar: true,
-                disableTeamEdit: true,
-                centerConnectors: true
-            });
-            
-            $('#bracket-lower').bracket({
-                init: lowerBracket,
-                disableToolbar: true,
-                disableTeamEdit: true,
-                centerConnectors: true
-            });
-            
-            $('#bracket-final').bracket({
-                init: finalBracket,
-                disableToolbar: true,
-                disableTeamEdit: true,
-                centerConnectors: true
-            });
+            // 延迟画中央连接线 (确保 DOM 渲染完成)
+            setTimeout(drawCenterConnectors, 0);
         }
         
         async function init() {
@@ -1262,7 +2214,183 @@
             renderBrackets();
         }
         
+        function showEditForm(match) {
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+            
+            title.textContent = '编辑比赛结果';
+            
+            const homeScore = match.home_score && match.home_score !== '' ? match.home_score : '';
+            const awayScore = match.away_score && match.away_score !== '' ? match.away_score : '';
+            const homeYellow = match.home_yellow_card || 0;
+            const homeRed = match.home_red_card || 0;
+            const awayYellow = match.away_yellow_card || 0;
+            const awayRed = match.away_red_card || 0;
+            
+            body.innerHTML = `
+                <div class="edit-form">
+                    <div class="edit-teams-row">
+                        <div class="edit-team-box">
+                            <div class="edit-team-name">${match.home_team}</div>
+                            <div class="edit-score-group">
+                                <input type="number" class="edit-score-input" id="editHomeScore" value="${homeScore}" min="0" max="99" placeholder="-">
+                            </div>
+                        </div>
+                        <div class="vs">VS</div>
+                        <div class="edit-team-box">
+                            <div class="edit-team-name">${match.away_team}</div>
+                            <div class="edit-score-group">
+                                <input type="number" class="edit-score-input" id="editAwayScore" value="${awayScore}" min="0" max="99" placeholder="-">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="edit-cards-group">
+                        <div style="text-align: center; font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">
+                            公平竞赛记录（黄牌 -1分，红牌 -4分）
+                        </div>
+                        <div class="edit-card-row">
+                            <div class="edit-card-label">
+                                <div class="yellow-icon"></div>
+                                ${match.home_team} 黄牌
+                            </div>
+                            <input type="number" class="edit-card-input" id="editHomeYellow" value="${homeYellow}" min="0" max="10">
+                        </div>
+                        <div class="edit-card-row">
+                            <div class="edit-card-label">
+                                <div class="red-icon"></div>
+                                ${match.home_team} 红牌
+                            </div>
+                            <input type="number" class="edit-card-input" id="editHomeRed" value="${homeRed}" min="0" max="10">
+                        </div>
+                        <div class="edit-card-row">
+                            <div class="edit-card-label">
+                                <div class="yellow-icon"></div>
+                                ${match.away_team} 黄牌
+                            </div>
+                            <input type="number" class="edit-card-input" id="editAwayYellow" value="${awayYellow}" min="0" max="10">
+                        </div>
+                        <div class="edit-card-row">
+                            <div class="edit-card-label">
+                                <div class="red-icon"></div>
+                                ${match.away_team} 红牌
+                            </div>
+                            <input type="number" class="edit-card-input" id="editAwayRed" value="${awayRed}" min="0" max="10">
+                        </div>
+                    </div>
+                    
+                    <div class="edit-match-info">
+                        <span>📅 ${match.match_date}</span>
+                        <span>⏰ ${match.match_time}</span>
+                        <span>🏟️ ${match.venue}</span>
+                    </div>
+                    
+                    <div class="edit-buttons">
+                        <button class="edit-btn edit-btn-cancel" onclick="closeModal()">取消</button>
+                        <button class="edit-btn edit-btn-save" id="editSaveBtn" onclick="saveMatchResult(${match.id})">保存</button>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+        
+        function showToast(message, isError = false) {
+            let toast = document.getElementById('editToast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'editToast';
+                toast.className = 'edit-toast';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.className = 'edit-toast' + (isError ? ' error' : '');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+        
+        async function saveMatchResult(matchId) {
+            const saveBtn = document.getElementById('editSaveBtn');
+            if (saveBtn) saveBtn.disabled = true;
+            
+            const homeScore = document.getElementById('editHomeScore').value;
+            const awayScore = document.getElementById('editAwayScore').value;
+            const homeYellow = document.getElementById('editHomeYellow').value || 0;
+            const homeRed = document.getElementById('editHomeRed').value || 0;
+            const awayYellow = document.getElementById('editAwayYellow').value || 0;
+            const awayRed = document.getElementById('editAwayRed').value || 0;
+            
+            try {
+                const response = await fetch(`${API_BASE}/matches/${matchId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        home_score: homeScore,
+                        away_score: awayScore,
+                        home_yellow_card: parseInt(homeYellow),
+                        home_red_card: parseInt(homeRed),
+                        away_yellow_card: parseInt(awayYellow),
+                        away_red_card: parseInt(awayRed)
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('比赛结果已保存！');
+                    closeModal();
+                    await fetchMatches();
+                    renderCalendar();
+                    renderStandings();
+                    renderBrackets();
+                } else {
+                    showToast('保存失败：' + (result.error || '未知错误'), true);
+                }
+            } catch (error) {
+                showToast('网络错误，请重试', true);
+                console.error('保存比赛结果失败:', error);
+            } finally {
+                if (saveBtn) saveBtn.disabled = false;
+            }
+        }
+        
+        function resetAllData() {
+            if (!confirm('确定要重置所有比赛数据吗？比分和红黄牌记录都将清空。')) return;
+            
+            const btn = document.getElementById('resetDataBtn');
+            btn.disabled = true;
+            btn.textContent = '重置中...';
+            
+            fetch(`${API_BASE}/reset-test-data`, { method: 'POST' })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) {
+                        showToast('数据已重置！');
+                        fetchMatches().then(() => {
+                            renderCalendar();
+                            renderStandings();
+                            renderBrackets();
+                        });
+                    } else {
+                        showToast('重置失败', true);
+                    }
+                    btn.disabled = false;
+                    btn.textContent = '🔄 重置数据';
+                })
+                .catch(err => {
+                    showToast('重置失败: ' + err.message, true);
+                    btn.disabled = false;
+                    btn.textContent = '🔄 重置数据';
+                });
+        }
+        
         init();
     </script>
+    <button class="reset-btn" id="resetDataBtn" onclick="resetAllData()">🔄 重置数据</button>
 </body>
 </html>

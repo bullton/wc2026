@@ -1,11 +1,12 @@
 import sqlite3
 import os
+import json
 from datetime import datetime, timedelta
 
 def init_db():
     conn = sqlite3.connect('worldcup.db')
     cursor = conn.cursor()
-    
+
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS matches (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,17 +25,29 @@ def init_db():
             stage TEXT NOT NULL
         )
     ''')
-    
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS knockout_matrix (
+            id INTEGER PRIMARY KEY,
+            scenario_id INTEGER,
+            qualifier_groups TEXT,
+            third_places TEXT
+        )
+    ''')
+
     cursor.execute('SELECT COUNT(*) FROM matches')
     if cursor.fetchone()[0] == 0:
         insert_matches(cursor)
-    
+
+    cursor.execute('SELECT COUNT(*) FROM knockout_matrix')
+    if cursor.fetchone()[0] == 0:
+        insert_knockout_matrix(cursor)
+
     conn.commit()
     conn.close()
 
 def insert_matches(cursor):
     matches = [
-        # 第一轮
         ("2026-06-12", "03:00", "A", "墨西哥", "南非", "", "", "墨西哥城球场", "小组赛"),
         ("2026-06-12", "10:00", "A", "韩国", "捷克", "", "", "瓜达拉哈拉球场", "小组赛"),
         ("2026-06-13", "03:00", "B", "加拿大", "波黑", "", "", "多伦多体育场", "小组赛"),
@@ -59,8 +72,6 @@ def insert_matches(cursor):
         ("2026-06-18", "04:00", "L", "英格兰", "克罗地亚", "", "", "达拉斯体育场", "小组赛"),
         ("2026-06-18", "01:00", "K", "葡萄牙", "民主刚果", "", "", "休斯敦体育场", "小组赛"),
         ("2026-06-18", "10:00", "K", "乌兹别克斯坦", "哥伦比亚", "", "", "墨西哥城球场", "小组赛"),
-        
-        # 第二轮
         ("2026-06-19", "00:00", "A", "捷克", "南非", "", "", "亚特兰大体育场", "小组赛"),
         ("2026-06-19", "03:00", "B", "瑞士", "波黑", "", "", "洛杉矶体育场", "小组赛"),
         ("2026-06-19", "06:00", "B", "加拿大", "卡塔尔", "", "", "温哥华体育场", "小组赛"),
@@ -85,8 +96,6 @@ def insert_matches(cursor):
         ("2026-06-24", "07:00", "L", "巴拿马", "克罗地亚", "", "", "多伦多体育场", "小组赛"),
         ("2026-06-24", "01:00", "K", "葡萄牙", "乌兹别克斯坦", "", "", "休斯敦体育场", "小组赛"),
         ("2026-06-24", "10:00", "K", "哥伦比亚", "民主刚果", "", "", "瓜达拉哈拉球场", "小组赛"),
-        
-        # 第三轮
         ("2026-06-25", "06:00", "C", "苏格兰", "巴西", "", "", "迈阿密体育场", "小组赛"),
         ("2026-06-25", "06:00", "C", "摩洛哥", "海地", "", "", "亚特兰大体育场", "小组赛"),
         ("2026-06-25", "03:00", "B", "瑞士", "加拿大", "", "", "温哥华体育场", "小组赛"),
@@ -111,8 +120,6 @@ def insert_matches(cursor):
         ("2026-06-28", "10:00", "J", "约旦", "阿根廷", "", "", "达拉斯体育场", "小组赛"),
         ("2026-06-28", "07:30", "K", "哥伦比亚", "葡萄牙", "", "", "迈阿密体育场", "小组赛"),
         ("2026-06-28", "07:30", "K", "民主刚果", "乌兹别克斯坦", "", "", "亚特兰大体育场", "小组赛"),
-        
-        # 1/16决赛
         ("2026-06-29", "03:00", "", "A2", "B2", "", "", "洛杉矶体育场", "1/16决赛"),
         ("2026-06-30", "01:00", "", "C1", "F2", "", "", "休斯敦体育场", "1/16决赛"),
         ("2026-06-30", "04:30", "", "E1", "A/B/C/D/F3", "", "", "波士顿体育场", "1/16决赛"),
@@ -129,8 +136,6 @@ def insert_matches(cursor):
         ("2026-07-04", "02:00", "", "D2", "G2", "", "", "达拉斯体育场", "1/16决赛"),
         ("2026-07-04", "06:00", "", "J1", "H2", "", "", "迈阿密体育场", "1/16决赛"),
         ("2026-07-04", "09:30", "", "K1", "D/E/I/J/L3", "", "", "堪萨斯城体育场", "1/16决赛"),
-        
-        # 1/8决赛
         ("2026-07-05", "01:00", "", "73胜者", "75胜者", "", "", "休斯敦体育场", "1/8决赛"),
         ("2026-07-05", "05:00", "", "74胜者", "77胜者", "", "", "费城体育场", "1/8决赛"),
         ("2026-07-06", "04:00", "", "76胜者", "78胜者", "", "", "纽约新泽西体育场", "1/8决赛"),
@@ -139,28 +144,68 @@ def insert_matches(cursor):
         ("2026-07-07", "08:00", "", "81胜者", "82胜者", "", "", "西雅图体育场", "1/8决赛"),
         ("2026-07-08", "00:00", "", "86胜者", "88胜者", "", "", "亚特兰大体育场", "1/8决赛"),
         ("2026-07-08", "04:00", "", "85胜者", "87胜者", "", "", "温哥华体育场", "1/8决赛"),
-        
-        # 1/4决赛
         ("2026-07-10", "04:00", "", "89胜者", "90胜者", "", "", "波士顿体育场", "1/4决赛"),
         ("2026-07-11", "03:00", "", "93胜者", "94胜者", "", "", "洛杉矶体育场", "1/4决赛"),
         ("2026-07-12", "05:00", "", "91胜者", "92胜者", "", "", "迈阿密体育场", "1/4决赛"),
         ("2026-07-12", "09:00", "", "95胜者", "96胜者", "", "", "堪萨斯城体育场", "1/4决赛"),
-        
-        # 半决赛
-        ("2026-07-15", "03:00", "", "97胜者", "98胜者", "", "", "达拉斯体育场", "半决赛"),
-        ("2026-07-16", "03:00", "", "99胜者", "100胜者", "", "", "亚特兰大体育场", "半决赛"),
-        
-        # 季军战
+        ("2026-07-15", "03:00", "", "97胜者", "100胜者", "", "", "达拉斯体育场", "半决赛"),
+        ("2026-07-16", "03:00", "", "98胜者", "99胜者", "", "", "亚特兰大体育场", "半决赛"),
         ("2026-07-19", "05:00", "", "101负者", "102负者", "", "", "迈阿密体育场", "季军战"),
-        
-        # 决赛
         ("2026-07-20", "03:00", "", "101胜者", "102胜者", "", "", "纽约新泽西体育场", "决赛"),
     ]
-    
+
     cursor.executemany('''
         INSERT INTO matches (match_date, match_time, group_name, home_team, away_team, home_score, away_score, venue, stage)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', matches)
+
+def insert_knockout_matrix(cursor):
+    matrix_file = 'scenarios.json'
+    if not os.path.exists(matrix_file):
+        print(f"Warning: {matrix_file} not found, skipping matrix import")
+        return
+
+    with open(matrix_file, 'r', encoding='utf-8-sig') as f:
+        scenarios = json.load(f)
+
+    for scenario in scenarios:
+        cursor.execute('''
+            INSERT INTO knockout_matrix (id, scenario_id, qualifier_groups, third_places)
+            VALUES (?, ?, ?, ?)
+        ''', (
+            scenario['scenario_id'],
+            scenario['scenario_id'],
+            json.dumps(scenario['qualifier_groups']),
+            json.dumps(scenario['third_places'])
+        ))
+
+def reset_test_data(cursor):
+    cursor.execute('''
+        UPDATE matches
+        SET home_score = '',
+            away_score = '',
+            home_yellow_card = 0,
+            home_red_card = 0,
+            away_yellow_card = 0,
+            away_red_card = 0
+    ''')
+    cursor.execute('''
+        UPDATE matches
+        SET home_team = home_team,
+            away_team = away_team
+        WHERE home_team LIKE '%胜者%' OR home_team LIKE '%第1%' OR home_team LIKE '%第2%'
+           OR home_team LIKE '%第3%' OR away_team LIKE '%胜者%' OR away_team LIKE '%第1%'
+           OR away_team LIKE '%第2%' OR away_team LIKE '%第3%'
+    ''')
+
+def get_initial_knockout_teams(cursor):
+    cursor.execute('''
+        UPDATE matches
+        SET home_team = home_team,
+            away_team = away_team
+        WHERE group_name = '' AND (home_team LIKE '%第1%' OR home_team LIKE '%第2%' OR home_team LIKE '%第3%')
+    ''')
+    conn.commit()
 
 if __name__ == '__main__':
     init_db()
