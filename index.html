@@ -330,6 +330,17 @@
             text-overflow: ellipsis;
         }
         
+        .score-display {
+            font-weight: 700;
+            color: #10b981;
+            margin: 0 6px;
+        }
+        
+        .vs-text {
+            color: #888;
+            margin: 0 6px;
+        }
+        
         .match-venue {
             font-size: 0.65rem;
             opacity: 0.8;
@@ -752,12 +763,8 @@
             opacity: 0.5;
         }
         
-        tr.first-locked {
-            background: rgba(16, 185, 129, 0.1);
-        }
-        
-        tr.second-locked {
-            background: rgba(59, 130, 246, 0.08);
+tr.qualified-locked {
+            background: rgba(16, 185, 129, 0.15);
         }
         
         .standings-table .stat-col {
@@ -1281,6 +1288,53 @@
         let currentMonth = 6;
         let allMatches = [];
         let matchData = {};
+        let allStandings = {};
+        let determinedTeams = new Set();
+        
+        function getDeterminedTeams() {
+            const set = new Set();
+            if (allStandings) {
+                for (const g of Object.keys(allStandings)) {
+                    for (const s of allStandings[g]) {
+                        if (s.is_ranking_locked) {
+                            set.add(s.team);
+                        }
+                    }
+                }
+            }
+            return set;
+        }
+        
+        const R16_PLACEHOLDERS = {
+            73: { home: 'A2', away: 'B2' },
+            74: { home: 'C1', away: 'F2' },
+            75: { home: 'E1', away: 'A/B/C/D/F3' },
+            76: { home: 'F1', away: 'C2' },
+            77: { home: 'E2', away: 'I2' },
+            78: { home: 'I1', away: 'C/D/F/G/H3' },
+            79: { home: 'A1', away: 'C/E/F/H/I3' },
+            80: { home: 'L1', away: 'E/H/I/J/K3' },
+            81: { home: 'G1', away: 'A/E/H/I/J3' },
+            82: { home: 'D1', away: 'B/E/F/I/J3' },
+            83: { home: 'H1', away: 'J2' },
+            84: { home: 'K2', away: 'L2' },
+            85: { home: 'B1', away: 'E/F/G/I/J3' },
+            86: { home: 'D2', away: 'G2' },
+            87: { home: 'J1', away: 'H2' },
+            88: { home: 'K1', away: 'D/E/I/J/L3' }
+        };
+        
+        function getR16Placeholder(matchId, slot) {
+            const p = R16_PLACEHOLDERS[matchId];
+            if (!p) return '待定';
+            return p[slot];
+        }
+        
+        async function fetchStandings() {
+            const res = await fetch(`${API_BASE}/standings`);
+            allStandings = await res.json();
+            return allStandings;
+        }
         
         async function fetchMatches() {
             try {
@@ -1342,6 +1396,7 @@
         }
         
         function renderCalendar() {
+            determinedTeams = getDeterminedTeams();
             const grid = document.getElementById('daysGrid');
             const title = document.getElementById('monthTitle');
             const prevBtn = document.getElementById('prevMonth');
@@ -1386,12 +1441,26 @@
                 
                 dayCell.innerHTML = `<div class="day-number">${day}</div>`;
                 
-                matches.forEach(match => {
+matches.forEach(match => {
                     const matchItem = document.createElement('div');
                     matchItem.className = `match-item ${getGroupClass(match.group_name)}`;
+                    const isR16 = R16_PLACEHOLDERS[match.id];
+                    let homeName = match.home_team || '待定';
+                    let awayName = match.away_team || '待定';
+                    if (isR16) {
+                        if (!determinedTeams.has(match.home_team)) {
+                            homeName = getR16Placeholder(match.id, 'home');
+                        }
+                        if (!determinedTeams.has(match.away_team)) {
+                            awayName = getR16Placeholder(match.id, 'away');
+                        }
+                    }
+                    const scoreStr = (match.home_score !== '' && match.away_score !== '') 
+                            ? `<span class="score-display">${match.home_score} : ${match.away_score}</span>` 
+                            : '<span class="vs-text">vs</span>';
                     matchItem.innerHTML = `
                         <div class="match-time">${match.match_time}</div>
-                        <div class="match-teams">${match.home_team} vs ${match.away_team}</div>
+                        <div class="match-teams">${homeName} ${scoreStr} ${awayName}</div>
                         <div class="match-venue">${getVenueFlag(match.venue)}${match.venue}</div>
                     `;
                     matchItem.addEventListener('click', () => showEditForm(match));
@@ -1479,185 +1548,122 @@
                 if (btn.dataset.tab === 'standings') {
                     renderStandings();
                 } else if (btn.dataset.tab === 'brackets') {
-                    renderBrackets();
+                    fetch(`${API_BASE}/refresh-knockout`, { method: 'POST' })
+                        .then(() => fetchMatches())
+                        .then(() => fetchStandings())
+                        .then(() => renderBrackets());
+                } else if (btn.dataset.tab === 'calendar') {
+                    fetch(`${API_BASE}/refresh-knockout`, { method: 'POST' })
+                        .then(() => fetchMatches())
+                        .then(() => fetchStandings())
+                        .then(() => renderCalendar());
                 }
             });
         });
         
         function renderStandings() {
             const container = document.getElementById('standingsContainer');
-            const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
-            const groupTeams = {
-                'A': ['墨西哥', '南非', '韩国', '捷克'],
-                'B': ['加拿大', '波黑', '卡塔尔', '瑞士'],
-                'C': ['巴西', '摩洛哥', '海地', '苏格兰'],
-                'D': ['美国', '澳大利亚', '土耳其', '巴拉圭'],
-                'E': ['德国', '科特迪瓦', '厄瓜多尔', '库拉索'],
-                'F': ['荷兰', '日本', '瑞典', '突尼斯'],
-                'G': ['比利时', '埃及', '伊朗', '新西兰'],
-                'H': ['西班牙', '沙特阿拉伯', '乌拉圭', '佛得角'],
-                'I': ['法国', '伊拉克', '挪威', '塞内加尔'],
-                'J': ['阿根廷', '奥地利', '约旦', '阿尔及利亚'],
-                'K': ['葡萄牙', '哥伦比亚', '乌兹别克斯坦', '民主刚果'],
-                'L': ['英格兰', '克罗地亚', '加纳', '巴拿马']
-            };
+            container.innerHTML = '<div class="loading">加载中...</div>';
+            
+            fetchStandings()
+                .then(standingsData => {
+                    const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+                    const groupTeams = {
+                        'A': ['墨西哥', '南非', '韩国', '捷克'],
+                        'B': ['加拿大', '波黑', '卡塔尔', '瑞士'],
+                        'C': ['巴西', '摩洛哥', '海地', '苏格兰'],
+                        'D': ['美国', '澳大利亚', '土耳其', '巴拉圭'],
+                        'E': ['德国', '科特迪瓦', '厄瓜多尔', '库拉索'],
+                        'F': ['荷兰', '日本', '瑞典', '突尼斯'],
+                        'G': ['比利时', '埃及', '伊朗', '新西兰'],
+                        'H': ['西班牙', '沙特阿拉伯', '乌拉圭', '佛得角'],
+                        'I': ['法国', '伊拉克', '挪威', '塞内加尔'],
+                        'J': ['阿根廷', '奥地利', '约旦', '阿尔及利亚'],
+                        'K': ['葡萄牙', '哥伦比亚', '乌兹别克斯坦', '民主刚果'],
+                        'L': ['英格兰', '克罗地亚', '加纳', '巴拿马']
+                    };
 
-            const teamFlags = {
-                '墨西哥': 'mx', '南非': 'za', '韩国': 'kr', '捷克': 'cz',
-                '加拿大': 'ca', '波黑': 'ba', '卡塔尔': 'qa', '瑞士': 'ch',
-                '巴西': 'br', '摩洛哥': 'ma', '海地': 'ht', '苏格兰': 'gb',
-                '美国': 'us', '澳大利亚': 'au', '土耳其': 'tr', '巴拉圭': 'py',
-                '德国': 'de', '科特迪瓦': 'ci', '厄瓜多尔': 'ec', '库拉索': 'cw',
-                '荷兰': 'nl', '日本': 'jp', '瑞典': 'se', '突尼斯': 'tn',
-                '比利时': 'be', '埃及': 'eg', '伊朗': 'ir', '新西兰': 'nz',
-                '西班牙': 'es', '沙特阿拉伯': 'sa', '乌拉圭': 'uy', '佛得角': 'cv',
-                '法国': 'fr', '伊拉克': 'iq', '挪威': 'no', '塞内加尔': 'sn',
-                '阿根廷': 'ar', '奥地利': 'at', '约旦': 'jo', '阿尔及利亚': 'dz',
-                '葡萄牙': 'pt', '哥伦比亚': 'co', '乌兹别克斯坦': 'uz', '民主刚果': 'cd',
-                '英格兰': 'gb-eng', '克罗地亚': 'hr', '加纳': 'gh', '巴拿马': 'pa'
-            };
-            
-            const groupMatches = {};
-            groups.forEach(g => {
-                groupMatches[g] = allMatches.filter(m => m.group_name === g);
-            });
-            
-            container.innerHTML = '<div class="standings-grid">' + 
-                groups.map(group => {
-                    const color = groupColors[group];
-                    const teams = groupTeams[group];
-                    const matches = groupMatches[group] || [];
-                    
-                    const teamStats = teams.map(team => {
-                        const teamMatches = matches.filter(m => m.home_team === team || m.away_team === team);
-                        let win = 0, draw = 0, lose = 0, gf = 0, ga = 0, yellow = 0, red = 0, points = 0;
-                        
-                        teamMatches.forEach(m => {
-                            const isHome = m.home_team === team;
-                            const scored = isHome ? (parseInt(m.home_score) || 0) : (parseInt(m.away_score) || 0);
-                            const conceded = isHome ? (parseInt(m.away_score) || 0) : (parseInt(m.home_score) || 0);
-                            const myYellow = isHome ? (m.home_yellow_card || 0) : (m.away_yellow_card || 0);
-                            const myRed = isHome ? (m.home_red_card || 0) : (m.away_red_card || 0);
-                            
-                            gf += scored;
-                            ga += conceded;
-                            yellow += myYellow;
-                            red += myRed;
-                            
-                            if (m.home_score !== '' && m.away_score !== '') {
-                                if (scored > conceded) { win++; points += 3; }
-                                else if (scored === conceded) { draw++; points += 1; }
-                                else { lose++; }
-                            }
-                        });
-                        
-                        const fairPlay = yellow * 1 + red * 4;
-                        return { team, win, draw, lose, gf, ga, gd: gf - ga, points, yellow, red, fairPlay };
-                    });
-                    
-                    const h2hStats = {};
-                    teams.forEach(t => h2hStats[t] = { gd: 0, gf: 0 });
-                    matches.forEach(m => {
-                        if (m.home_score === '' || m.away_score === '') return;
-                        if (teams.includes(m.home_team) && teams.includes(m.away_team)) {
-                            const homeGoals = parseInt(m.home_score) || 0;
-                            const awayGoals = parseInt(m.away_score) || 0;
-                            h2hStats[m.home_team].gf += homeGoals;
-                            h2hStats[m.home_team].gd += homeGoals - awayGoals;
-                            h2hStats[m.away_team].gf += awayGoals;
-                            h2hStats[m.away_team].gd += awayGoals - homeGoals;
-                        }
-                    });
-                    
-                    const fifaRanks = {
-                        '墨西哥': 13, '南非': 54, '韩国': 27, '捷克': 34,
-                        '加拿大': 42, '波黑': 61, '卡塔尔': 67, '瑞士': 16,
-                        '巴西': 3, '摩洛哥': 22, '海地': 88, '苏格兰': 40,
-                        '美国': 15, '澳大利亚': 26, '土耳其': 24, '巴拉圭': 48,
-                        '德国': 10, '科特迪瓦': 31, '厄瓜多尔': 17, '库拉索': 75,
-                        '荷兰': 7, '日本': 23, '瑞典': 25, '突尼斯': 41,
-                        '比利时': 5, '埃及': 39, '伊朗': 20, '新西兰': 58,
-                        '西班牙': 8, '沙特阿拉伯': 45, '乌拉圭': 12, '佛得角': 76,
-                        '法国': 2, '伊拉克': 66, '挪威': 29, '塞内加尔': 18,
-                        '阿根廷': 1, '奥地利': 30, '约旦': 73, '阿尔及利亚': 32,
-                        '葡萄牙': 6, '哥伦比亚': 14, '乌兹别克斯坦': 79, '民主刚果': 68,
-                        '英格兰': 4, '克罗地亚': 11, '加纳': 56, '巴拿马': 71
+                    const teamFlags = {
+                        '墨西哥': 'mx', '南非': 'za', '韩国': 'kr', '捷克': 'cz',
+                        '加拿大': 'ca', '波黑': 'ba', '卡塔尔': 'qa', '瑞士': 'ch',
+                        '巴西': 'br', '摩洛哥': 'ma', '海地': 'ht', '苏格兰': 'gb',
+                        '美国': 'us', '澳大利亚': 'au', '土耳其': 'tr', '巴拉圭': 'py',
+                        '德国': 'de', '科特迪瓦': 'ci', '厄瓜多尔': 'ec', '库拉索': 'cw',
+                        '荷兰': 'nl', '日本': 'jp', '瑞典': 'se', '突尼斯': 'tn',
+                        '比利时': 'be', '埃及': 'eg', '伊朗': 'ir', '新西兰': 'nz',
+                        '西班牙': 'es', '沙特阿拉伯': 'sa', '乌拉圭': 'uy', '佛得角': 'cv',
+                        '法国': 'fr', '伊拉克': 'iq', '挪威': 'no', '塞内加尔': 'sn',
+                        '阿根廷': 'ar', '奥地利': 'at', '约旦': 'jo', '阿尔及利亚': 'dz',
+                        '葡萄牙': 'pt', '哥伦比亚': 'co', '乌兹别克斯坦': 'uz', '民主刚果': 'cd',
+                        '英格兰': 'gb-eng', '克罗地亚': 'hr', '加纳': 'gh', '巴拿马': 'pa'
                     };
                     
-                    teamStats.forEach(s => {
-                        s.h2h_gd = h2hStats[s.team].gd;
-                        s.h2h_gf = h2hStats[s.team].gf;
-                        s.fifa_rank = fifaRanks[s.team] || 999;
-                    });
-                    
-                    teamStats.sort((a, b) => {
-                        if (b.points !== a.points) return b.points - a.points;
-                        if (b.h2h_gd !== a.h2h_gd) return b.h2h_gd - a.h2h_gd;
-                        if (b.h2h_gf !== a.h2h_gf) return b.h2h_gf - a.h2h_gf;
-                        if (b.gd !== a.gd) return b.gd - a.gd;
-                        if (b.gf !== a.gf) return b.gf - a.gf;
-                        if (a.fairPlay !== b.fairPlay) return a.fairPlay - b.fairPlay;
-                        return a.fifa_rank - b.fifa_rank;
-                    });
-                    
-                    return `
-                        <div class="standings-table">
-                            <div class="standings-header" style="border-left: 4px solid ${color}">第${group}组</div>
-                            <table class="standings-main">
-                                <thead>
-                                    <tr>
-                                        <th class="rank-col">#</th>
-                                        <th class="team-col">球队</th>
-                                        <th class="stat-col">赛</th>
-                                        <th class="stat-col">胜</th>
-                                        <th class="stat-col">平</th>
-                                        <th class="stat-col">负</th>
-                                        <th class="stat-col">进</th>
-                                        <th class="stat-col">失</th>
-                                        <th class="stat-col">净</th>
-                                        <th class="stat-col">积分</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${teamStats.map((s, i) => `
-                                        <tr class="team-row ${s.is_eliminated ? 'eliminated' : s.is_first_locked ? 'first-locked' : s.is_second_locked ? 'second-locked' : ''}" data-group="${group}" data-team="${s.team}">
-                                            <td class="rank-col">${i + 1}</td>
-                                            <td class="team-col team-name">
-                                                <span class="fi fi-${teamFlags[s.team] || 'xx'}" style="margin-right:8px;"></span>
-                                                ${s.team}
-                                                ${s.is_first_locked ? '<span class="status-badge locked" title="已锁定第1名">第①</span>' : ''}
-                                                ${s.is_second_locked && !s.is_first_locked ? '<span class="status-badge second" title="已锁定前二">前②</span>' : ''}
-                                                ${s.is_eliminated ? '<span class="status-badge eliminated" title="已被淘汰">✖</span>' : ''}
-                                                ${s.fairPlay > 0 ? `<span class="fair-play-badge" title="公平竞赛分: ${s.fairPlay}分">⚠️</span>` : ''}
-                                            </td>
-                                            <td class="stat-col">${s.win + s.draw + s.lose}</td>
-                                            <td class="stat-col">${s.win}</td>
-                                            <td class="stat-col">${s.draw}</td>
-                                            <td class="stat-col">${s.lose}</td>
-                                            <td class="stat-col">${s.gf}</td>
-                                            <td class="stat-col">${s.ga}</td>
-                                            <td class="stat-col ${s.gd > 0 ? 'positive' : s.gd < 0 ? 'negative' : ''}">${s.gd > 0 ? '+' : ''}${s.gd}</td>
-                                            <td class="stat-col points">${s.points}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                            <div class="h2h-section" id="h2h-${group}">
-                                <div class="h2h-toggle" onclick="toggleH2H('${group}')">组内对阵 ▼</div>
-                                <div class="h2h-content">
-                                    ${matches.map(m => `
-                                        <div class="h2h-match">
-                                            <span class="h2h-team ${m.home_team}">${m.home_team}</span>
-                                            <span class="h2h-score">${m.home_score || '-' } : ${m.away_score || '-'}</span>
-                                            <span class="h2h-team ${m.away_team}">${m.away_team}</span>
-                                            <span class="h2h-date">${m.match_date.slice(5)}</span>
+                    container.innerHTML = '<div class="standings-grid">' + 
+                        groups.map(group => {
+                            const color = groupColors[group];
+                            const teamStats = standingsData[group] || [];
+                            
+                            return `
+                                <div class="standings-table" id="standings-${group}">
+                                    <div class="standings-header" style="border-left: 4px solid ${color}">第${group}组</div>
+                                    <table class="standings-main">
+                                        <thead>
+                                            <tr>
+                                                <th class="rank-col">#</th>
+                                                <th class="team-col">球队</th>
+                                                <th class="stat-col">赛</th>
+                                                <th class="stat-col">胜</th>
+                                                <th class="stat-col">平</th>
+                                                <th class="stat-col">负</th>
+                                                <th class="stat-col">进</th>
+                                                <th class="stat-col">失</th>
+                                                <th class="stat-col">净</th>
+                                                <th class="stat-col">积分</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${teamStats.map((s, i) => `
+                                                <tr class="team-row ${s.is_ranking_locked ? 'qualified-locked' : ''}" data-group="${group}" data-team="${s.team}">
+                                                    <td class="rank-col">${i + 1}</td>
+                                                    <td class="team-col team-name">
+                                                        <span class="fi fi-${teamFlags[s.team] || 'xx'}" style="margin-right:8px;"></span>
+                                                        ${s.team}${s.is_qualified ? '<sup style="color:#10b981;font-weight:700;">Q</sup>' : ''}
+                                                        ${s.is_eliminated ? '<span class="status-badge eliminated" title="已被淘汰">✖</span>' : ''}
+                                                        ${s.fairPlay > 0 ? `<span class="fair-play-badge" title="公平竞赛分: ${s.fairPlay}分">⚠️</span>` : ''}
+                                                    </td>
+                                                    <td class="stat-col">${s.win + s.draw + s.lose}</td>
+                                                    <td class="stat-col">${s.win}</td>
+                                                    <td class="stat-col">${s.draw}</td>
+                                                    <td class="stat-col">${s.lose}</td>
+                                                    <td class="stat-col">${s.gf}</td>
+                                                    <td class="stat-col">${s.ga}</td>
+                                                    <td class="stat-col ${s.gd > 0 ? 'positive' : s.gd < 0 ? 'negative' : ''}">${s.gd > 0 ? '+' : ''}${s.gd}</td>
+                                                    <td class="stat-col points">${s.points}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                    <div class="h2h-section" id="h2h-${group}">
+                                        <div class="h2h-toggle" onclick="toggleH2H('${group}')">组内对阵 ▼</div>
+                                        <div class="h2h-content">
+                                            ${(allMatches.filter(m => m.group_name === group) || []).map(m => `
+                                                <div class="h2h-match">
+                                                    <span class="h2h-team ${m.home_team}">${m.home_team}</span>
+                                                    <span class="h2h-score">${m.home_score || '-' } : ${m.away_score || '-'}</span>
+                                                    <span class="h2h-team ${m.away_team}">${m.away_team}</span>
+                                                    <span class="h2h-date">${m.match_date.slice(5)}</span>
+                                                </div>
+                                            `).join('')}
                                         </div>
-                                    `).join('')}
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('') + '</div>';
+                            `;
+                        }).join('') + '</div>';
+                })
+                .catch(err => {
+                    console.error('加载积分榜失败:', err);
+                    container.innerHTML = '<div class="error">加载积分榜失败</div>';
+                });
         }
         
         window.toggleH2H = function(group) {
@@ -1671,6 +1677,49 @@
                 toggle.innerHTML = '组内对阵 ▼';
             }
         };
+        
+        function updateStandingsForGroup(group, standings) {
+            const groupTable = document.querySelector(`#standings-${group} table.standings-main tbody`);
+            if (!groupTable) {
+                fetchStandings().then(() => renderStandings());
+                return;
+            }
+            
+            standings.forEach((s, i) => {
+                const row = groupTable.querySelector(`tr[data-team="${s.team}"]`);
+                if (row) {
+                    const rankCell = row.querySelector('.rank-col');
+                    const teamCell = row.querySelector('.team-col');
+                    
+                    if (rankCell) rankCell.textContent = i + 1;
+                    
+                    if (teamCell) {
+                        const flagHtml = teamCell.querySelector('span.fi')?.outerHTML || '';
+                        let statusHtml = `${s.is_ranking_locked ? '<sup style="color:#10b981;font-weight:700;">Q</sup>' : ''}`;
+                        statusHtml += s.is_eliminated ? '<span class="status-badge eliminated" title="已被淘汰">✖</span>' : '';
+                        statusHtml += s.fairPlay > 0 ? `<span class="fair-play-badge" title="公平竞赛分: ${s.fairPlay}分">⚠️</span>` : '';
+                        
+                        teamCell.innerHTML = flagHtml + s.team + statusHtml;
+                    }
+                    
+                    const cells = row.querySelectorAll('.stat-col');
+                    if (cells.length >= 9) {
+                        cells[0].textContent = s.win + s.draw + s.lose;
+                        cells[1].textContent = s.win;
+                        cells[2].textContent = s.draw;
+                        cells[3].textContent = s.lose;
+                        cells[4].textContent = s.gf;
+                        cells[5].textContent = s.ga;
+                        cells[6].textContent = (s.gd > 0 ? '+' : '') + s.gd;
+                        cells[7].textContent = s.points;
+                    }
+                    
+                    row.className = 'team-row';
+                    if (s.is_ranking_locked) row.classList.add('qualified-locked');
+                }
+            });
+            fetchStandings();
+        }
         
         const KB_BRACKET_MAPPING = {
             "73": { to: "89", slot: "home" },
@@ -1806,8 +1855,15 @@
             const homeWin = winner === 'home' ? 'winner' : (winner === 'away' ? 'loser' : '');
             const awayWin = winner === 'away' ? 'winner' : (winner === 'home' ? 'loser' : '');
             
-            const homeName = match.home_team || '待定';
-            const awayName = match.away_team || '待定';
+            const homeIsPlaceholder = !match.home_team || match.home_team === '待定' || !determinedTeams.has(match.home_team);
+            const awayIsPlaceholder = !match.away_team || match.away_team === '待定' || !determinedTeams.has(match.away_team);
+            const isR16 = R16_PLACEHOLDERS[matchId];
+            const homeName = homeIsPlaceholder 
+                ? (isR16 ? getR16Placeholder(matchId, 'home') : '待定')
+                : match.home_team;
+            const awayName = awayIsPlaceholder 
+                ? (isR16 ? getR16Placeholder(matchId, 'away') : '待定')
+                : match.away_team;
             const homeScore = isScheduled ? '-' : (match.home_score ?? '-');
             const awayScore = isScheduled ? '-' : (match.away_score ?? '-');
             
@@ -1834,11 +1890,11 @@
                         </span>
                     </div>
                     <div class="team ${homeWin}">
-                        <span class="team-name ${!match.home_team || match.home_team === '待定' ? 'tbd' : ''}">${homeName}</span>
+                        <span class="team-name ${homeIsPlaceholder ? 'tbd' : ''}">${homeName}</span>
                         <span class="team-score">${homeScore}</span>
                     </div>
                     <div class="team ${awayWin}">
-                        <span class="team-name ${!match.away_team || match.away_team === '待定' ? 'tbd' : ''}">${awayName}</span>
+                        <span class="team-name ${awayIsPlaceholder ? 'tbd' : ''}">${awayName}</span>
                         <span class="team-score">${awayScore}</span>
                     </div>
                     <div class="match-meta">
@@ -2072,13 +2128,16 @@
             svg.innerHTML = paths.join('');
         }
         
-        function isGroupDetermined(group, matches) {
+        function isGroupDetermined(group, matches, standingsData) {
             const groupMatches = matches.filter(m => m.group_name === group);
             const allPlayed = groupMatches.length > 0 && groupMatches.every(m => 
                 m.home_score !== '' && m.home_score !== null && 
                 m.away_score !== '' && m.away_score !== null
             );
-            return allPlayed;
+            if (!allPlayed) return false;
+            if (!standingsData || !standingsData[group]) return false;
+            const gs = standingsData[group];
+            return gs.length >= 1 && gs[0].is_determined === true;
         }
         
         function isMatchVisible(matchId, allMatches, determinedGroups) {
@@ -2106,10 +2165,11 @@
         }
         
         function renderBrackets() {
+            determinedTeams = getDeterminedTeams();
             const groupLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
             const determinedGroups = new Set();
             groupLetters.forEach(g => {
-                if (isGroupDetermined(g, allMatches)) determinedGroups.add(g);
+                if (isGroupDetermined(g, allMatches, allStandings)) determinedGroups.add(g);
             });
             
             kbApplyAdvancements();
@@ -2345,9 +2405,18 @@
                     showToast('比赛结果已保存！');
                     closeModal();
                     await fetchMatches();
-                    renderCalendar();
-                    renderStandings();
-                    renderBrackets();
+                    if (result.standings && result.standings.length > 0) {
+                        updateStandingsForGroup(result.group_name, result.standings);
+                    } else {
+                        renderStandings();
+                    }
+                    fetch(`${API_BASE}/refresh-knockout`, { method: 'POST' })
+                        .then(() => fetchMatches())
+                        .then(() => fetchStandings())
+                        .then(() => {
+                            renderCalendar();
+                            renderBrackets();
+                        });
                 } else {
                     showToast('保存失败：' + (result.error || '未知错误'), true);
                 }

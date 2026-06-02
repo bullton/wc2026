@@ -173,80 +173,76 @@ def is_team_ranked(team, group_name, matches, target_position):
             except:
                 team_remaining += 1
     
-    team_max = team_current_points + (team_remaining * 3)
+    team_min = team_current_points
     
-    above_teams = [t for t in teams if t != team]
-    for other in above_teams:
-        other_matches = [m for m in group_matches if m['home_team'] == other or m['away_team'] == other]
-        other_points = 0
-        other_remaining = 0
-        for m in other_matches:
-            if m['home_score'] == '' or m['away_score'] == '':
-                other_remaining += 1
-            else:
-                is_home = m['home_team'] == other
-                try:
-                    hs = int(m['home_score'])
-                    as_ = int(m['away_score'])
-                    if is_home:
-                        if hs > as_: other_points += 3
-                        elif hs == as_: other_points += 1
-                    else:
-                        if as_ > hs: other_points += 3
-                        elif as_ == hs: other_points += 1
-                except:
-                    other_remaining += 1
-        other_max = other_points + (other_remaining * 3)
-        
-        if other_max > team_max:
-            return False
-    
-    teams_better_or_equal = 0
-    teams_worse = []
+    teams_that_could_be_ahead = 0
     for other in teams:
         if other == team:
             continue
         other_matches = [m for m in group_matches if m['home_team'] == other or m['away_team'] == other]
-        other_points = 0
+        other_current_points = 0
         other_remaining = 0
-        for m in other_matches:
-            if m['home_score'] == '' or m['away_score'] == '':
-                other_remaining += 1
-            else:
-                is_home = m['home_team'] == other
-                try:
-                    hs = int(m['home_score'])
-                    as_ = int(m['away_score'])
-                    if is_home:
-                        if hs > as_: other_points += 3
-                        elif hs == as_: other_points += 1
-                    else:
-                        if as_ > hs: other_points += 3
-                        elif as_ == hs: other_points += 1
-                except:
-                    other_remaining += 1
+        other_unplayed_vs_team = False
         
-        other_max = other_points + (other_remaining * 3)
-        if other_max > team_max:
-            teams_better_or_equal += 1
-        elif other_max == team_max:
-            h2h_gd = calculate_h2h_gd(team, other, group_matches)
+        for m in other_matches:
+            involves_team = (m['home_team'] == team or m['away_team'] == team)
+            is_unplayed = m['home_score'] == '' or m['away_score'] == ''
+            
+            if involves_team:
+                if is_unplayed:
+                    other_unplayed_vs_team = True
+                    other_remaining += 1
+                else:
+                    is_home = m['home_team'] == other
+                    try:
+                        hs = int(m['home_score'])
+                        as_ = int(m['away_score'])
+                        if is_home:
+                            if hs > as_: other_current_points += 3
+                            elif hs == as_: other_current_points += 1
+                        else:
+                            if as_ > hs: other_current_points += 3
+                            elif as_ == hs: other_current_points += 1
+                    except:
+                        other_remaining += 1
+            else:
+                if is_unplayed:
+                    other_remaining += 1
+                else:
+                    is_home = m['home_team'] == other
+                    try:
+                        hs = int(m['home_score'])
+                        as_ = int(m['away_score'])
+                        if is_home:
+                            if hs > as_: other_current_points += 3
+                            elif hs == as_: other_current_points += 1
+                        else:
+                            if as_ > hs: other_current_points += 3
+                            elif as_ == hs: other_current_points += 1
+                    except:
+                        other_remaining += 1
+        
+        other_max = other_current_points + (other_remaining * 3)
+        
+        if other_max > team_min:
+            teams_that_could_be_ahead += 1
+        elif other_max == team_min:
+            h2h_gd, h2h_gf = calculate_h2h_gd(team, other, group_matches)
             if h2h_gd < 0:
-                teams_better_or_equal += 1
-            elif h2h_gd == 0:
-                total_gd = calculate_total_gd(team, group_matches) - calculate_total_gd(other, group_matches)
-                if total_gd < 0:
-                    teams_better_or_equal += 1
+                teams_that_could_be_ahead += 1
+            elif other_unplayed_vs_team and h2h_gd <= 0:
+                teams_that_could_be_ahead += 1
     
     if target_position == 1:
-        return teams_better_or_equal == 0
+        return teams_that_could_be_ahead == 0
     elif target_position == 2:
-        return teams_better_or_equal <= 1
+        return teams_that_could_be_ahead <= 1
     else:
         return False
 
 def calculate_h2h_gd(team1, team2, group_matches):
     gd = 0
+    gf = 0
     for m in group_matches:
         if (m['home_team'] == team1 and m['away_team'] == team2) or \
            (m['home_team'] == team2 and m['away_team'] == team1):
@@ -254,93 +250,33 @@ def calculate_h2h_gd(team1, team2, group_matches):
                 try:
                     if m['home_team'] == team1:
                         gd += int(m['home_score']) - int(m['away_score'])
+                        gf += int(m['home_score'])
                     else:
                         gd += int(m['away_score']) - int(m['home_score'])
+                        gf += int(m['away_score'])
                 except:
                     pass
-    return gd
+    return gd, gf
 
 def calculate_total_gd(team, group_matches):
     gd = 0
+    gf = 0
     for m in group_matches:
         if m['home_team'] == team:
             if m['home_score'] != '' and m['away_score'] != '':
                 try:
                     gd += int(m['home_score']) - int(m['away_score'])
+                    gf += int(m['home_score'])
                 except:
                     pass
         elif m['away_team'] == team:
             if m['home_score'] != '' and m['away_score'] != '':
                 try:
                     gd += int(m['away_score']) - int(m['home_score'])
+                    gf += int(m['away_score'])
                 except:
                     pass
-    return gd
-
-def is_team_eliminated(team, group_name, matches):
-    teams = GROUP_TEAMS.get(group_name, [])
-    group_matches = [m for m in matches if m['group_name'] == group_name]
-    
-    team_matches = [m for m in group_matches if m['home_team'] == team or m['away_team'] == team]
-    team_current_points = 0
-    team_remaining = 0
-    
-    for m in team_matches:
-        if m['home_score'] == '' or m['away_score'] == '':
-            team_remaining += 1
-        else:
-            is_home = m['home_team'] == team
-            try:
-                hs = int(m['home_score'])
-                as_ = int(m['away_score'])
-                if is_home:
-                    if hs > as_: team_current_points += 3
-                    elif hs == as_: team_current_points += 1
-                else:
-                    if as_ > hs: team_current_points += 3
-                    elif as_ == hs: team_current_points += 1
-            except:
-                team_remaining += 1
-    
-    team_max = team_current_points + (team_remaining * 3)
-    
-    better_teams = 0
-    for other in teams:
-        if other == team:
-            continue
-        other_matches = [m for m in group_matches if m['home_team'] == other or m['away_team'] == other]
-        other_points = 0
-        other_remaining = 0
-        for m in other_matches:
-            if m['home_score'] == '' or m['away_score'] == '':
-                other_remaining += 1
-            else:
-                is_home = m['home_team'] == other
-                try:
-                    hs = int(m['home_score'])
-                    as_ = int(m['away_score'])
-                    if is_home:
-                        if hs > as_: other_points += 3
-                        elif hs == as_: other_points += 1
-                    else:
-                        if as_ > hs: other_points += 3
-                        elif as_ == hs: other_points += 1
-                except:
-                    other_remaining += 1
-        
-        other_max = other_points + (other_remaining * 3)
-        if other_max > team_max:
-            better_teams += 1
-        elif other_max == team_max:
-            h2h_gd = calculate_h2h_gd(team, other, group_matches)
-            if h2h_gd < 0:
-                better_teams += 1
-            elif h2h_gd == 0:
-                total_gd = calculate_total_gd(team, group_matches) - calculate_total_gd(other, group_matches)
-                if total_gd < 0:
-                    better_teams += 1
-    
-    return better_teams >= 2
+    return gd, gf
 
 def is_team_ranked_for_position(group_name, matches, position):
     teams = GROUP_TEAMS.get(group_name, [])
@@ -401,12 +337,15 @@ def is_team_ranked_for_position(group_name, matches, position):
             if other_max > team_max:
                 teams_above += 1
             elif other_max == team_max:
-                h2h_gd = calculate_h2h_gd(team, other, group_matches)
+                h2h_gd, h2h_gf = calculate_h2h_gd(team, other, group_matches)
                 if h2h_gd < 0:
                     teams_above += 1
                 elif h2h_gd == 0:
-                    total_gd = calculate_total_gd(team, group_matches) - calculate_total_gd(other, group_matches)
-                    if total_gd < 0:
+                    total_gd, total_gf = calculate_total_gd(team, group_matches)
+                    other_total_gd, other_total_gf = calculate_total_gd(other, group_matches)
+                    if total_gd < other_total_gd:
+                        teams_above += 1
+                    elif total_gd == other_total_gd and total_gf < other_total_gf:
                         teams_above += 1
         
         if teams_above < position:
@@ -503,6 +442,128 @@ def calculate_all_third_place_teams(matches):
     ))
 
     return third_place_teams[:8]
+
+def is_team_eliminated(team, group_name, matches):
+    group_matches = [m for m in matches if m['group_name'] == group_name]
+    team_matches = [m for m in group_matches if m['home_team'] == team or m['away_team'] == team]
+    team_remaining = sum(1 for m in team_matches if m['home_score'] == '' or m['away_score'] == '')
+    if team_remaining > 0:
+        return False
+    return is_team_qualified(team, group_name, matches) == False and is_team_ranked_for_position(group_name, matches, 2) == False
+
+def is_team_ranking_locked(team, group_name, matches):
+    if is_team_ranked(team, group_name, matches, 1):
+        return True
+    if is_team_ranked(team, group_name, matches, 2):
+        group_matches = [m for m in matches if m['group_name'] == group_name]
+        teams = GROUP_TEAMS.get(group_name, [])
+        team_matches = [m for m in group_matches if m['home_team'] == team or m['away_team'] == team]
+        team_current_points = 0
+        team_remaining = 0
+        for m in team_matches:
+            if m['home_score'] == '' or m['away_score'] == '':
+                team_remaining += 1
+            else:
+                is_home = m['home_team'] == team
+                try:
+                    hs = int(m['home_score'])
+                    as_ = int(m['away_score'])
+                    if is_home:
+                        if hs > as_: team_current_points += 3
+                        elif hs == as_: team_current_points += 1
+                    else:
+                        if as_ > hs: team_current_points += 3
+                        elif as_ == hs: team_current_points += 1
+                except:
+                    team_remaining += 1
+        team_max = team_current_points + (team_remaining * 3)
+        for other in teams:
+            if other == team:
+                continue
+            other_matches = [m for m in group_matches if m['home_team'] == other or m['away_team'] == other]
+            other_current_points = 0
+            other_remaining = 0
+            for m in other_matches:
+                involves_team = (m['home_team'] == team or m['away_team'] == team)
+                is_unplayed = m['home_score'] == '' or m['away_score'] == ''
+                if involves_team:
+                    if is_unplayed:
+                        other_remaining += 1
+                    else:
+                        is_home = m['home_team'] == other
+                        try:
+                            hs = int(m['home_score'])
+                            as_ = int(m['away_score'])
+                            if is_home:
+                                if hs > as_: other_current_points += 3
+                                elif hs == as_: other_current_points += 1
+                            else:
+                                if as_ > hs: other_current_points += 3
+                                elif as_ == hs: other_current_points += 1
+                        except:
+                            other_remaining += 1
+                else:
+                    if is_unplayed:
+                        other_remaining += 1
+                    else:
+                        is_home = m['home_team'] == other
+                        try:
+                            hs = int(m['home_score'])
+                            as_ = int(m['away_score'])
+                            if is_home:
+                                if hs > as_: other_current_points += 3
+                                elif hs == as_: other_current_points += 1
+                            else:
+                                if as_ > hs: other_current_points += 3
+                                elif as_ == hs: other_current_points += 1
+                        except:
+                            other_remaining += 1
+            other_max = other_current_points + (other_remaining * 3)
+            if other_max > team_max:
+                return True
+    if is_group_completed(group_name, matches):
+        return True
+    return False
+
+def is_team_qualified(team, group_name, matches):
+    group_matches = [m for m in matches if m['group_name'] == group_name]
+    team_matches = [m for m in group_matches if m['home_team'] == team or m['away_team'] == team]
+    
+    team_played = sum(1 for m in team_matches if m['home_score'] != '' and m['away_score'] != '')
+    if team_played == 0:
+        return False
+    
+    all_played = all(m['home_score'] != '' and m['away_score'] != '' for m in team_matches)
+    if not all_played:
+        return is_team_ranked(team, group_name, matches, 1) or is_team_ranked(team, group_name, matches, 2)
+    
+    standings = calculate_group_standings(group_name, matches)
+    team_idx = next((i for i, t in enumerate(standings) if t['team'] == team), None)
+    
+    if team_idx is not None and team_idx <= 1:
+        return True
+    
+    if team_idx == 2:
+        all_groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
+        all_third = []
+        for g in all_groups:
+            g_standings = calculate_group_standings(g, matches)
+            if len(g_standings) >= 3:
+                third = g_standings[2].copy()
+                third['group'] = g
+                all_third.append(third)
+        all_third.sort(key=lambda x: (-x['points'], -x['gd'], -x['gf'], x['fair_play'], x['fifa_rank']))
+        best_8 = all_third[:8]
+        return any(t['team'] == team and t['group'] == group_name for t in best_8)
+    
+    return False
+
+def is_group_completed(group_name, matches):
+    group_matches = [m for m in matches if m['group_name'] == group_name]
+    for m in group_matches:
+        if m['home_score'] == '' or m['away_score'] == '':
+            return False
+    return True
 
 def match_knockout_matrix(qualifier_groups, third_place_teams):
     conn = get_db_connection()
@@ -740,15 +801,65 @@ def update_match(match_id):
     updated_match = dict(cursor.fetchone())
     conn.close()
 
+    group_name = updated_match.get('group_name', '')
+    standings = []
+    if group_name:
+        group_standings = calculate_group_standings(group_name, all_matches)
+        for s in group_standings:
+            s['is_ranking_locked'] = is_team_ranking_locked(s['team'], group_name, all_matches)
+            s['is_qualified'] = is_team_qualified(s['team'], group_name, all_matches)
+            s['is_eliminated'] = is_team_eliminated(s['team'], group_name, all_matches)
+        standings = group_standings
+
     return jsonify({
         'success': True,
-        'updated_match': updated_match
+        'updated_match': updated_match,
+        'group_name': group_name,
+        'standings': standings
     })
 
 @app.route('/api/groups', methods=['GET'])
 def get_groups():
     groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
     return jsonify(groups)
+
+@app.route('/api/refresh-knockout', methods=['POST'])
+def refresh_knockout():
+    later_placeholders = {
+        89: ('73胜者', '75胜者'),
+        90: ('74胜者', '77胜者'),
+        91: ('76胜者', '78胜者'),
+        92: ('79胜者', '80胜者'),
+        93: ('83胜者', '84胜者'),
+        94: ('81胜者', '82胜者'),
+        95: ('86胜者', '88胜者'),
+        96: ('85胜者', '87胜者'),
+        97: ('89胜者', '90胜者'),
+        98: ('93胜者', '94胜者'),
+        99: ('91胜者', '92胜者'),
+        100: ('95胜者', '96胜者'),
+        101: ('97胜者', '98胜者'),
+        102: ('99胜者', '100胜者'),
+        104: ('101胜者', '102胜者'),
+    }
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    for mid, (home, away) in later_placeholders.items():
+        cursor.execute('UPDATE matches SET home_team = ?, away_team = ? WHERE id = ?', (home, away, mid))
+    conn.commit()
+    conn.close()
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM matches WHERE match_date LIKE "2026-%" ORDER BY match_date, match_time')
+    all_matches = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    
+    update_knockout_matches(all_matches)
+    apply_knockout_winners()
+    
+    return jsonify({'success': True, 'message': '淘汰赛晋级已重算'})
 
 @app.route('/api/standings', methods=['GET'])
 def get_standings():
@@ -762,10 +873,33 @@ def get_standings():
     for group in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']:
         group_standings = calculate_group_standings(group, matches)
         for s in group_standings:
-            s['is_first_locked'] = is_team_ranked(s['team'], group, matches, 1)
-            s['is_second_locked'] = is_team_ranked(s['team'], group, matches, 2)
+            s['is_ranking_locked'] = is_team_ranking_locked(s['team'], group, matches)
+            s['is_qualified'] = is_team_qualified(s['team'], group, matches)
             s['is_eliminated'] = is_team_eliminated(s['team'], group, matches)
         standings[group] = group_standings
+    
+    all_groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
+    all_third = []
+    for g in all_groups:
+        if len(standings[g]) >= 3:
+            third = standings[g][2].copy()
+            third['group'] = g
+            third['is_ranking_locked'] = standings[g][2].get('is_ranking_locked', False)
+            third['is_qualified'] = standings[g][2].get('is_qualified', False)
+            all_third.append(third)
+    all_third.sort(key=lambda x: (-x['points'], -x['gd'], -x['gf'], x['fair_play'], x['fifa_rank']))
+    best_8_third = all_third[:8]
+    best_8_groups = {t['group'] for t in best_8_third}
+    
+    for group in all_groups:
+        if len(standings[group]) >= 2:
+            first_locked = standings[group][0].get('is_ranking_locked', False)
+            second_locked = standings[group][1].get('is_ranking_locked', False)
+            standings[group][0]['is_determined'] = first_locked
+            standings[group][1]['is_determined'] = second_locked
+        if len(standings[group]) >= 3:
+            third_determined = standings[group][2].get('is_ranking_locked', False) and group in best_8_groups
+            standings[group][2]['is_determined'] = third_determined
 
     return jsonify(standings)
 
