@@ -436,7 +436,7 @@ def calculate_group_standings(group_name, matches):
 def calculate_all_third_place_teams(matches):
     third_place_teams = []
     for group in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']:
-        if not has_group_matches_played(group, matches):
+        if not is_group_completed(group, matches):
             continue
         standings = calculate_group_standings(group, matches)
         if len(standings) >= 3:
@@ -652,24 +652,9 @@ def update_knockout_matches(matches):
                 team_with_pos = f"{team}({group}{position})"
                 cursor.execute('UPDATE matches SET away_team = ? WHERE id = ?', (team_with_pos, match_id))
 
-    third_place_teams = calculate_all_third_place_teams(matches)
-    if third_place_teams:
-        qualifier_groups = []
-        for group in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']:
-            if not has_group_matches_played(group, matches):
-                continue
-            standings = calculate_group_standings(group, matches)
-            if len(standings) >= 2:
-                first_locked = is_team_ranked_for_position(group, matches, 1)
-                second_locked = is_team_ranked_for_position(group, matches, 2)
-                if first_locked and second_locked:
-                    qualifier_groups.append(group)
-
-        matched_thirds = match_knockout_matrix(qualifier_groups, third_place_teams)
-
-        third_by_group = {t['group']: t for t in matched_thirds}
-
-        slot_groups = {
+        third_place_teams = calculate_all_third_place_teams(matches)
+        if third_place_teams:
+            slot_groups = {
             'A/B/C/D/F3': ['A', 'B', 'C', 'D', 'F'],
             'C/D/F/G/H3': ['C', 'D', 'F', 'G', 'H'],
             'C/E/F/H/I3': ['C', 'E', 'F', 'H', 'I'],
@@ -680,6 +665,8 @@ def update_knockout_matches(matches):
             'D/E/I/J/L3': ['D', 'E', 'I', 'J', 'L']
         }
 
+        third_by_group = {t['group']: t for t in third_place_teams}
+        third_ranks = {t['group']: i for i, t in enumerate(third_place_teams)}
         third_slots = list(slot_groups.keys())
 
         def solve_backtrack(assignment, used_groups):
@@ -690,13 +677,13 @@ def update_knockout_matches(matches):
             available = [g for g in eligible if g in third_by_group and g not in used_groups]
             if not available:
                 return None
-            available.sort(key=lambda g: third_by_group[g]['rank'])
+            available.sort(key=lambda g: third_ranks[g])
             for g in available:
                 new_assignment = assignment.copy()
                 new_assignment[slot] = third_by_group[g]
                 new_used = used_groups.copy()
                 new_used.add(g)
-                result = solve_backtrack(new_assignment, new_used)
+                result = solve_backtrack(new_assignment, used_groups)
                 if result:
                     return result
             return None
@@ -706,15 +693,14 @@ def update_knockout_matches(matches):
         if optimal_assignment:
             slot_to_team = {}
             for slot, team_data in optimal_assignment.items():
-                slot_to_team[slot] = f"{team_data['team']}({team_data['third_code']})"
+                slot_to_team[slot] = f"{team_data['team']}({slot})"
 
             for match in matches:
                 if match['stage'] != '1/16决赛':
                     continue
                 home = match['home_team']
                 away = match['away_team']
-                third_slots_list = ['A/B/C/D/F3', 'C/D/F/G/H3', 'C/E/F/H/I3', 'E/H/I/J/K3',
-                                   'A/E/H/I/J3', 'B/E/F/I/J3', 'E/F/G/I/J3', 'D/E/I/J/L3']
+                third_slots_list = list(slot_groups.keys())
                 current_slot = None
                 if home in third_slots_list:
                     current_slot = home
