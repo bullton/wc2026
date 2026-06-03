@@ -1025,7 +1025,6 @@ def fill_round(round_num):
             })
     
     conn.commit()
-    conn.close()
     
     cursor.execute('SELECT * FROM matches WHERE match_date LIKE "2026-%" ORDER BY match_date, match_time')
     all_matches = [dict(row) for row in cursor.fetchall()]
