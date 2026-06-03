@@ -1290,14 +1290,34 @@ tr.qualified-locked {
         let matchData = {};
         let allStandings = {};
         let determinedTeams = new Set();
-        
+
+        function getTeamBaseName(teamName) {
+            if (!teamName) return '';
+            const match = teamName.match(/^([^(]+)/);
+            return match ? match[1].trim() : teamName;
+        }
+
+        function isTeamDetermined(teamName) {
+            if (!teamName) return false;
+            if (determinedTeams.has(teamName)) return true;
+            const baseName = getTeamBaseName(teamName);
+            for (const t of determinedTeams) {
+                if (getTeamBaseName(t) === baseName) return true;
+            }
+            return false;
+        }
+
         function getDeterminedTeams() {
             const set = new Set();
             if (allStandings) {
-                for (const g of Object.keys(allStandings)) {
-                    for (const s of allStandings[g]) {
+                const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+                for (const g of groups) {
+                    if (!allStandings[g]) continue;
+                    for (let i = 0; i < allStandings[g].length; i++) {
+                        const s = allStandings[g][i];
                         if (s.is_ranking_locked) {
-                            set.add(s.team);
+                            const pos = i + 1;
+                            set.add(s.team + `(${g}${pos})`);
                         }
                     }
                 }
@@ -1448,10 +1468,10 @@ matches.forEach(match => {
                     let homeName = match.home_team || '待定';
                     let awayName = match.away_team || '待定';
                     if (isR16) {
-                        if (!determinedTeams.has(match.home_team)) {
+                        if (!isTeamDetermined(match.home_team)) {
                             homeName = getR16Placeholder(match.id, 'home');
                         }
-                        if (!determinedTeams.has(match.away_team)) {
+                        if (!isTeamDetermined(match.away_team)) {
                             awayName = getR16Placeholder(match.id, 'away');
                         }
                     }
@@ -1855,8 +1875,8 @@ matches.forEach(match => {
             const homeWin = winner === 'home' ? 'winner' : (winner === 'away' ? 'loser' : '');
             const awayWin = winner === 'away' ? 'winner' : (winner === 'home' ? 'loser' : '');
             
-            const homeIsPlaceholder = !match.home_team || match.home_team === '待定' || !determinedTeams.has(match.home_team);
-            const awayIsPlaceholder = !match.away_team || match.away_team === '待定' || !determinedTeams.has(match.away_team);
+            const homeIsPlaceholder = !match.home_team || match.home_team === '待定' || !isTeamDetermined(match.home_team);
+            const awayIsPlaceholder = !match.away_team || match.away_team === '待定' || !isTeamDetermined(match.away_team);
             const isR16 = R16_PLACEHOLDERS[matchId];
             const homeName = homeIsPlaceholder 
                 ? (isR16 ? getR16Placeholder(matchId, 'home') : '待定')
@@ -2268,6 +2288,7 @@ matches.forEach(match => {
         
         async function init() {
             await fetchMatches();
+            await fetchStandings();
             renderLegend();
             renderCalendar();
             renderStandings();
