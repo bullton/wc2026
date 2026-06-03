@@ -3,6 +3,7 @@ from flask_cors import CORS
 import sqlite3
 import os
 import json
+import random
 from database import init_db
 
 app = Flask(__name__)
@@ -972,6 +973,123 @@ def reset_test_data():
     conn.commit()
     conn.close()
     return jsonify({'success': True, 'message': '测试数据已重置'})
+
+ROUND_MATCH_IDS = {
+    1: list(range(1, 25)),
+    2: list(range(25, 49)),
+    3: list(range(49, 73))
+}
+
+def generate_random_score():
+    weights = [0.15, 0.20, 0.30, 0.20, 0.10, 0.03, 0.02]
+    home_goals = random.choices(range(7), weights=weights)[0]
+    away_goals = random.choices(range(7), weights=weights)[0]
+    return home_goals, away_goals
+
+@app.route('/api/fill-round/<int:round_num>', methods=['POST'])
+def fill_round(round_num):
+    if round_num not in [1, 2, 3]:
+        return jsonify({'error': 'Invalid round number. Use 1, 2, or 3.'}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    match_ids = ROUND_MATCH_IDS[round_num]
+    updated = []
+    
+    for match_id in match_ids:
+        cursor.execute('SELECT * FROM matches WHERE id = ?', (match_id,))
+        match = cursor.fetchone()
+        
+        if match and (match['home_score'] == '' or match['away_score'] == ''):
+            home_score, away_score = generate_random_score()
+            home_yellow = random.randint(0, 3)
+            home_red = random.randint(0, 1) if random.random() < 0.1 else 0
+            away_yellow = random.randint(0, 3)
+            away_red = random.randint(0, 1) if random.random() < 0.1 else 0
+            
+            cursor.execute('''
+                UPDATE matches
+                SET home_score = ?, away_score = ?,
+                    home_yellow_card = ?, home_red_card = ?,
+                    away_yellow_card = ?, away_red_card = ?
+                WHERE id = ?
+            ''', (home_score, away_score, home_yellow, home_red, away_yellow, away_red, match_id))
+            
+            updated.append({
+                'id': match_id,
+                'home_team': match['home_team'],
+                'away_team': match['away_team'],
+                'home_score': home_score,
+                'away_score': away_score
+            })
+    
+    conn.commit()
+    conn.close()
+    
+    cursor.execute('SELECT * FROM matches WHERE match_date LIKE "2026-%" ORDER BY match_date, match_time')
+    all_matches = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    
+    update_knockout_matches(all_matches)
+    
+    return jsonify({
+        'success': True,
+        'message': f'第{round_num}轮比赛已填充',
+        'updated_count': len(updated),
+        'updated_matches': updated
+    })
+
+@app.route('/api/fill-all-rounds', methods=['POST'])
+def fill_all_rounds():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    updated = []
+    
+    for round_num in [1, 2, 3]:
+        match_ids = ROUND_MATCH_IDS[round_num]
+        for match_id in match_ids:
+            cursor.execute('SELECT * FROM matches WHERE id = ?', (match_id,))
+            match = cursor.fetchone()
+            
+            if match and (match['home_score'] == '' or match['away_score'] == ''):
+                home_score, away_score = generate_random_score()
+                home_yellow = random.randint(0, 3)
+                home_red = random.randint(0, 1) if random.random() < 0.1 else 0
+                away_yellow = random.randint(0, 3)
+                away_red = random.randint(0, 1) if random.random() < 0.1 else 0
+                
+                cursor.execute('''
+                    UPDATE matches
+                    SET home_score = ?, away_score = ?,
+                        home_yellow_card = ?, home_red_card = ?,
+                        away_yellow_card = ?, away_red_card = ?
+                    WHERE id = ?
+                ''', (home_score, away_score, home_yellow, home_red, away_yellow, away_red, match_id))
+                
+                updated.append({
+                    'id': match_id,
+                    'home_team': match['home_team'],
+                    'away_team': match['away_team'],
+                    'home_score': home_score,
+                    'away_score': away_score
+                })
+    
+    conn.commit()
+    conn.close()
+    
+    cursor.execute('SELECT * FROM matches WHERE match_date LIKE "2026-%" ORDER BY match_date, match_time')
+    all_matches = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    
+    update_knockout_matches(all_matches)
+    
+    return jsonify({
+        'success': True,
+        'message': '所有小组赛已填充',
+        'updated_count': len(updated),
+        'updated_matches': updated
+    })
 
 if __name__ == '__main__':
     init_db()
