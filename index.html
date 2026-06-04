@@ -3287,14 +3287,32 @@ btn.disabled = false;
         }
         
         function showChampion() {
-            fetch('/api/simulate', { method: 'POST' })
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('simulateLoading').style.display = 'none';
-                    document.getElementById('championDisplay').classList.add('show');
-                    document.getElementById('championName').textContent = data.champion || '未知';
-                    document.getElementById('thirdPlace').textContent = data.third_place ? `季军: ${data.third_place}` : '';
-                });
+            document.getElementById('simulateLoading').style.display = 'none';
+            document.getElementById('championDisplay').classList.add('show');
+            
+            let champion = '未知';
+            let thirdPlace = '';
+            
+            for (let i = simulationSteps.length - 1; i >= 0; i--) {
+                const step = simulationSteps[i];
+                if (!step.matches && step.winner) {
+                    if (step.stage === '决赛' && step.winner) {
+                        champion = step.winner;
+                    } else if (step.stage === '半决赛' && step.winner) {
+                        const semis = simulationSteps.filter(s => s.stage === '半决赛');
+                        if (semis.length === 2) {
+                            const otherSemi = semis.find(s => s !== step);
+                            if (otherSemi && otherSemi.loser) {
+                                thirdPlace = otherSemi.loser;
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            
+            document.getElementById('championName').textContent = champion;
+            document.getElementById('thirdPlace').textContent = thirdPlace ? `季军: ${thirdPlace}` : '';
         }
         
         function closeSimulation() {
@@ -3302,6 +3320,9 @@ btn.disabled = false;
                 clearTimeout(simulationInterval);
             }
             document.getElementById('simulateOverlay').classList.remove('active');
+            document.getElementById('simulateLoading').style.display = 'block';
+            document.getElementById('championDisplay').classList.remove('show');
+            document.getElementById('simulateSteps').innerHTML = '';
         }
     </script>
     <button class="reset-btn" id="resetDataBtn" onclick="resetAllData()">🔄 重置数据</button>
