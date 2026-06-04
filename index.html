@@ -3291,28 +3291,22 @@ btn.disabled = false;
             document.getElementById('championDisplay').classList.add('show');
             
             let champion = '未知';
+            let runnerUp = '';
             let thirdPlace = '';
             
-            for (let i = simulationSteps.length - 1; i >= 0; i--) {
-                const step = simulationSteps[i];
+            for (let step of simulationSteps) {
                 if (!step.matches && step.winner) {
-                    if (step.stage === '决赛' && step.winner) {
+                    if (step.stage === '决赛') {
                         champion = step.winner;
-                    } else if (step.stage === '半决赛' && step.winner) {
-                        const semis = simulationSteps.filter(s => s.stage === '半决赛');
-                        if (semis.length === 2) {
-                            const otherSemi = semis.find(s => s !== step);
-                            if (otherSemi && otherSemi.loser) {
-                                thirdPlace = otherSemi.loser;
-                            }
-                        }
+                        runnerUp = step.loser;
+                    } else if (step.stage === '季军战') {
+                        thirdPlace = step.winner;
                     }
-                    break;
                 }
             }
             
             document.getElementById('championName').textContent = champion;
-            document.getElementById('thirdPlace').textContent = thirdPlace ? `季军: ${thirdPlace}` : '';
+            document.getElementById('thirdPlace').textContent = runnerUp ? `亚军: ${runnerUp}  |  季军: ${thirdPlace}` : (thirdPlace ? `季军: ${thirdPlace}` : '');
         }
         
         function closeSimulation() {
