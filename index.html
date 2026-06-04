@@ -1676,7 +1676,6 @@ matches.forEach(match => {
                     renderStandings();
                 } else if (btn.dataset.tab === 'predictions') {
                     loadAllPredictions();
-                }
                 } else if (btn.dataset.tab === 'brackets') {
                     fetch(`${API_BASE}/refresh-knockout`, { method: 'POST' })
                         .then(() => fetchMatches())
