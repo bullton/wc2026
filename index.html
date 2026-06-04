@@ -2411,7 +2411,7 @@ matches.forEach(match => {
             
             title.textContent = '编辑比赛结果';
             
-            loadExistingPrediction(${match.id});
+            loadExistingPrediction(match.id);
             
             const homeScore = match.home_score && match.home_score !== '' ? match.home_score : '';
             const awayScore = match.away_score && match.away_score !== '' ? match.away_score : '';
