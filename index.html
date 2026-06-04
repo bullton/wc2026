@@ -672,7 +672,63 @@
             cursor: not-allowed;
             transform: none;
         }
-        
+
+        .ai-predict-section {
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+        }
+
+        .ai-predict-btn {
+            padding: 10px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .ai-predict-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .ai-predict-btn:disabled {
+            background: #888;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .ai-result {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+            text-align: left;
+        }
+
+        .ai-prediction-header {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .ai-prediction-score {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .ai-prediction-reason {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
         .edit-match-info {
             text-align: center;
             margin-top: 20px;
@@ -2373,6 +2429,15 @@ matches.forEach(match => {
                         </div>
                     </div>
                     
+                    <div class="ai-predict-section" id="aiPredictSection">
+                        <button class="ai-predict-btn" id="aiPredictBtn" onclick="predictMatch(${match.id})">🤖 AI预测比分</button>
+                        <div class="ai-result" id="aiResult${match.id}" style="display:none;">
+                            <div class="ai-prediction-header">AI预测结果</div>
+                            <div class="ai-prediction-score" id="aiScore${match.id}"></div>
+                            <div class="ai-prediction-reason" id="aiReason${match.id}"></div>
+                        </div>
+                    </div>
+                    
                     <div class="edit-cards-group">
                         <div style="text-align: center; font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">
                             公平竞赛记录（黄牌 -1分，红牌 -4分）
@@ -2440,7 +2505,50 @@ matches.forEach(match => {
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
-        
+
+        async function predictMatch(matchId) {
+            const btn = document.getElementById('aiPredictBtn');
+            const resultDiv = document.getElementById('aiResult' + matchId);
+            btn.disabled = true;
+            btn.textContent = '分析中...';
+
+            try {
+                const response = await fetch(`${API_BASE}/predict-match/${matchId}`, { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('aiScore' + matchId).textContent = '预测比分: ' + data.prediction;
+                    document.getElementById('aiReason' + matchId).textContent = data.reason;
+                    resultDiv.style.display = 'block';
+                    btn.textContent = '查看AI预测';
+                    btn.onclick = () => resultDiv.style.display = resultDiv.style.display === 'none' ? 'block' : 'none';
+                } else {
+                    showToast('预测失败: ' + (data.error || '未知错误'), true);
+                }
+            } catch (err) {
+                showToast('预测请求失败: ' + err.message, true);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function viewPrediction(matchId) {
+            try {
+                const response = await fetch(`${API_BASE}/get-prediction/${matchId}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('aiScore' + matchId).textContent = '预测比分: ' + data.prediction;
+                    document.getElementById('aiReason' + matchId).textContent = data.reason;
+                    document.getElementById('aiResult' + matchId).style.display = 'block';
+                } else {
+                    showToast('暂无预测结果', true);
+                }
+            } catch (err) {
+                showToast('获取预测失败', true);
+            }
+        }
+
         async function saveMatchResult(matchId) {
             const saveBtn = document.getElementById('editSaveBtn');
             if (saveBtn) saveBtn.disabled = true;

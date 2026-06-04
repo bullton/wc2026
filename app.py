@@ -1076,7 +1076,126 @@ def fill_all_rounds():
         'updated_matches': updated
     })
 
+import hashlib
+import base64
+
+def get_ai_api_key():
+    encoded_key = "c2stY3AtTVhBbDJJdGY2ZHpBejZjSVo0aDZ5akIyZTg1WHZFcldtbWE1SENuOHl0aldVN3JfbHlTZlVTeDRXMmRYSWVrTGxxM2JuVzVsS3h4SjZ6aTZFdDlrcFBnTnFkTmhHczZFSHc3dFJyVm52ak4tS1cyWXZRQjg="
+    return base64.b64decode(encoded_key).decode('utf-8')
+
+def get_prediction_from_ai(home_team, away_team):
+    import urllib.request
+    import urllib.error
+
+    api_key = get_ai_api_key()
+    url = "https://api.minimaxi.com/v1/chat/completions"
+
+    home_rank = FIFA_RANKINGS.get(home_team, 100)
+    away_rank = FIFA_RANKINGS.get(away_team, 100)
+
+    prompt = f"""作为足球分析师，预测以下比赛的比分：
+
+主队：{home_team} (FIFA排名: {home_rank})
+客队：{away_team} (FIFA排名: {away_rank})
+
+请根据：
+1. 两队的FIFA排名差距
+2. 近期表现和历史战绩
+3. 球队状态和人员情况
+
+给出比分预测。预测需要包括：
+- 预测比分（如：2-1）
+- 预测理由（2-3句话）
+
+请以JSON格式回复，格式如下：
+{{"prediction": "2-1", "reason": "..."}}
+只返回JSON，不要其他内容。"""
+
+    data = {
+        "model": "MiniMax-M3",
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    try:
+        req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method='POST')
+        with urllib.request.urlopen(req, timeout=30) as response:
+            result = json.loads(response.read().decode('utf-8'))
+            content = result['choices'][0]['message']['content']
+            return json.loads(content)
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.route('/api/predict-match/<int:match_id>', methods=['POST'])
+def predict_match(match_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM matches WHERE id = ?', (match_id,))
+    match = cursor.fetchone()
+
+    if not match:
+        conn.close()
+        return jsonify({'error': 'Match not found'}), 404
+
+    home_team = match['home_team']
+    away_team = match['away_team']
+
+    result = get_prediction_from_ai(home_team, away_team)
+
+    if 'error' in result:
+        return jsonify({'error': result['error']}), 500
+
+    cursor.execute('''
+        INSERT OR REPLACE INTO match_predictions (match_id, prediction, reason)
+        VALUES (?, ?, ?)
+    ''', (match_id, result.get('prediction', ''), result.get('reason', '')))
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        'success': True,
+        'home_team': home_team,
+        'away_team': away_team,
+        'prediction': result.get('prediction', ''),
+        'reason': result.get('reason', '')
+    })
+
+@app.route('/api/get-prediction/<int:match_id>', methods=['GET'])
+def get_prediction(match_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM match_predictions WHERE match_id = ?', (match_id,))
+    pred = cursor.fetchone()
+    conn.close()
+
+    if pred:
+        return jsonify({
+            'success': True,
+            'prediction': pred['prediction'],
+            'reason': pred['reason']
+        })
+    else:
+        return jsonify({'error': 'No prediction found'}), 404
+
 if __name__ == '__main__':
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS match_predictions (
+            match_id INTEGER PRIMARY KEY,
+            prediction TEXT,
+            reason TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
     init_db()
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=True, host='0.0.0.0', port=port)
