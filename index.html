@@ -3091,8 +3091,14 @@ btn.disabled = false;
             font-weight: bold;
             color: #f59e0b;
             margin-left: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .simulate-step.active .score {
+            opacity: 1;
         }
         .simulate-step.done .score {
+            opacity: 1;
             color: #10b981;
         }
         .simulate-loader {
