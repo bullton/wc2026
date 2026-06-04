@@ -1063,9 +1063,7 @@ def reset_test_data():
             home_yellow_card = 0,
             home_red_card = 0,
             away_yellow_card = 0,
-            away_red_card = 0,
-            home_penalty_score = NULL,
-            away_penalty_score = NULL
+            away_red_card = 0
     ''')
     
     knockout_teams = [
