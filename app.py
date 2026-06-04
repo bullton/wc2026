@@ -1080,7 +1080,7 @@ import hashlib
 import base64
 
 def get_ai_api_key():
-    encoded_key = "c2stY3AtTVhBbDJJdGY2ZHpBejZjSVo0aDZ5akIyZTg1WHZFcldtbWE1SENuOHl0aldVN3JfbHlTZlVTeDRXMmRYSWVrTGxxM2JuVzVsS3h4SjZ6aTZFdDlrcFBnTnFkTmhHczZFSHc3dFJyVm52ak4tS1cyWXZRQjg="
+    encoded_key = "c2stY3AtTVhBbDJJdGY2ZHpBajZjSVo0aDZ5akIyZTg1WHZFcldtbWFZSENuOHl0alc1R3JfbDZ5U2ZVU3g0VzJkWEpla3hMcWkzYm5XNWxLMXhuSjR6ZWk2RXQ5a3BQZ05xZE5qR3k2RUg3dFRyVm52ak4tS1cyWXZRQjg="
     return base64.b64decode(encoded_key).decode('utf-8')
 
 def get_prediction_from_ai(home_team, away_team):
@@ -1128,6 +1128,11 @@ def get_prediction_from_ai(home_team, away_team):
         with urllib.request.urlopen(req, timeout=30) as response:
             result = json.loads(response.read().decode('utf-8'))
             content = result['choices'][0]['message']['content']
+            # Extract JSON from AI response (may contain thinking tags)
+            import re
+            json_match = re.search(r'\{[^{}]*\}', content)
+            if json_match:
+                return json.loads(json_match.group())
             return json.loads(content)
     except Exception as e:
         return {"error": str(e)}

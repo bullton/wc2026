@@ -2524,9 +2524,11 @@ matches.forEach(match => {
                     btn.onclick = () => resultDiv.style.display = resultDiv.style.display === 'none' ? 'block' : 'none';
                 } else {
                     showToast('预测失败: ' + (data.error || '未知错误'), true);
+                    btn.textContent = '🤖 AI预测比分';
                 }
             } catch (err) {
                 showToast('预测请求失败: ' + err.message, true);
+                btn.textContent = '🤖 AI预测比分';
             } finally {
                 btn.disabled = false;
             }
