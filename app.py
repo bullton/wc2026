@@ -1188,6 +1188,25 @@ def get_prediction(match_id):
     else:
         return jsonify({'error': 'No prediction found'}), 404
 
+@app.route('/api/all-predictions', methods=['GET'])
+def get_all_predictions():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT p.*, m.home_team, m.away_team, m.home_score, m.away_score, 
+               m.match_date, m.match_time, m.stage, m.group_name, m.venue
+        FROM match_predictions p
+        JOIN matches m ON p.match_id = m.id
+        ORDER BY m.match_date DESC, m.match_time DESC
+    ''')
+    predictions = cursor.fetchall()
+    conn.close()
+    
+    return jsonify({
+        'success': True,
+        'predictions': [dict(row) for row in predictions]
+    })
+
 if __name__ == '__main__':
     conn = get_db_connection()
     cursor = conn.cursor()

@@ -1327,6 +1327,7 @@ tr.qualified-locked {
         <button class="tab-btn active" data-tab="calendar">赛程日历</button>
         <button class="tab-btn" data-tab="standings">小组积分表</button>
         <button class="tab-btn" data-tab="brackets">淘汰赛对阵图</button>
+        <button class="tab-btn" data-tab="predictions">预测记录</button>
     </div>
     
     <div id="tab-calendar" class="tab-content active">
@@ -1356,6 +1357,10 @@ tr.qualified-locked {
     
     <div id="tab-brackets" class="tab-content">
         <div class="brackets-container" id="bracketsContainer"></div>
+    </div>
+    
+    <div id="tab-predictions" class="tab-content">
+        <div class="predictions-list" id="predictionsList"></div>
     </div>
     
     <div class="modal-overlay" id="modal">
@@ -1663,12 +1668,15 @@ matches.forEach(match => {
                 btn.classList.add('active');
                 document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
                 const subtitle = document.querySelector('.hero p');
-                const tabNames = { calendar: '赛程日历', standings: '小组积分表', brackets: '淘汰赛对阵图' };
+                const tabNames = { calendar: '赛程日历', standings: '小组积分表', brackets: '淘汰赛对阵图', predictions: '预测记录' };
                 subtitle.textContent = `美加墨世界杯 · ${tabNames[btn.dataset.tab]}`;
                 document.title = `2026 世界杯 - ${tabNames[btn.dataset.tab]}`;
                 
                 if (btn.dataset.tab === 'standings') {
                     renderStandings();
+                } else if (btn.dataset.tab === 'predictions') {
+                    loadAllPredictions();
+                }
                 } else if (btn.dataset.tab === 'brackets') {
                     fetch(`${API_BASE}/refresh-knockout`, { method: 'POST' })
                         .then(() => fetchMatches())
@@ -2404,6 +2412,8 @@ matches.forEach(match => {
             
             title.textContent = '编辑比赛结果';
             
+            loadExistingPrediction(${match.id});
+            
             const homeScore = match.home_score && match.home_score !== '' ? match.home_score : '';
             const awayScore = match.away_score && match.away_score !== '' ? match.away_score : '';
             const homeYellow = match.home_yellow_card || 0;
@@ -2506,7 +2516,7 @@ matches.forEach(match => {
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        async function predictMatch(matchId) {
+async function predictMatch(matchId) {
             const btn = document.getElementById('aiPredictBtn');
             const resultDiv = document.getElementById('aiResult' + matchId);
             btn.disabled = true;
@@ -2521,16 +2531,94 @@ matches.forEach(match => {
                     document.getElementById('aiReason' + matchId).textContent = data.reason;
                     resultDiv.style.display = 'block';
                     btn.textContent = '查看AI预测';
-                    btn.onclick = () => resultDiv.style.display = resultDiv.style.display === 'none' ? 'block' : 'none';
+                    btn.onclick = () => {
+                        if (resultDiv.style.display === 'none') {
+                            resultDiv.style.display = 'block';
+                        } else {
+                            resultDiv.style.display = 'none';
+                        }
+                    };
                 } else {
                     showToast('预测失败: ' + (data.error || '未知错误'), true);
                     btn.textContent = '🤖 AI预测比分';
+                    btn.disabled = false;
                 }
             } catch (err) {
                 showToast('预测请求失败: ' + err.message, true);
                 btn.textContent = '🤖 AI预测比分';
-            } finally {
                 btn.disabled = false;
+            }
+        }
+
+        async function loadExistingPrediction(matchId) {
+            try {
+                const response = await fetch(`${API_BASE}/get-prediction/${matchId}`);
+                const data = await response.json();
+
+                const btn = document.getElementById('aiPredictBtn');
+                const resultDiv = document.getElementById('aiResult' + matchId);
+
+                if (data.success) {
+                    document.getElementById('aiScore' + matchId).textContent = '预测比分: ' + data.prediction;
+                    document.getElementById('aiReason' + matchId).textContent = data.reason;
+                    resultDiv.style.display = 'block';
+                    btn.textContent = '查看AI预测';
+                    btn.onclick = () => {
+                        if (resultDiv.style.display === 'none') {
+                            resultDiv.style.display = 'block';
+                        } else {
+                            resultDiv.style.display = 'none';
+                        }
+                    };
+                    return true;
+                }
+            } catch (err) {
+                console.log('No existing prediction');
+            }
+return false;
+        }
+
+        async function loadAllPredictions() {
+            const container = document.getElementById('predictionsList');
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">加载中...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/all-predictions`);
+                const data = await response.json();
+                
+                if (data.success && data.predictions && data.predictions.length > 0) {
+                    container.innerHTML = data.predictions.map(p => `
+                        <div class="prediction-card" style="background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                                    📅 ${p.match_date} ${p.match_time} | 🏟️ ${p.venue}
+                                </div>
+                                <div style="font-size: 0.8rem; color: var(--accent);">${p.stage}</div>
+                            </div>
+                            <div style="font-size: 1.3rem; font-weight: 700; text-align: center; margin-bottom: 12px;">
+                                ${p.home_team} vs ${p.away_team}
+                            </div>
+                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; padding: 12px; margin-bottom: 10px; text-align: center;">
+                                <div style="font-size: 1.5rem; font-weight: bold;">🤖 AI预测: ${p.prediction}</div>
+                            </div>
+                            <div style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">
+                                ${p.reason}
+                            </div>
+                            ${p.home_score !== null && p.away_score !== null ? `
+                                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center;">
+                                    <span style="color: ${p.prediction === `${p.home_score}-${p.away_score}` ? '#4caf50' : '#f44336'};">
+                                        实际比分: ${p.home_score} - ${p.away_score} | 
+                                        ${p.prediction === `${p.home_score}-${p.away_score}` ? '✓ 预测正确' : '✗ 预测错误'}
+                                    </span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">暂无预测记录<br>点击比赛编辑按钮可进行AI预测</div>';
+                }
+            } catch (err) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">加载预测记录失败</div>';
             }
         }
 
