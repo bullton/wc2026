@@ -746,8 +746,8 @@ def apply_knockout_winners():
 
     stage_mapping = {
         '1/16决赛': {
-            73: (90, 'home'), 74: (89, 'home'), 75: (90, 'away'), 76: (91, 'home'),
-            77: (89, 'away'), 78: (91, 'away'), 79: (92, 'home'), 80: (92, 'away'),
+            73: (89, 'home'), 74: (90, 'home'), 75: (89, 'away'), 76: (91, 'home'),
+            77: (90, 'away'), 78: (91, 'away'), 79: (92, 'home'), 80: (92, 'away'),
             81: (94, 'home'), 82: (94, 'away'), 83: (93, 'home'), 84: (93, 'away'),
             85: (96, 'home'), 86: (95, 'home'), 87: (96, 'away'), 88: (95, 'away')
         },
@@ -756,7 +756,7 @@ def apply_knockout_winners():
             93: (98, 'home'), 94: (98, 'away'), 95: (100, 'home'), 96: (100, 'away')
         },
         '1/4决赛': {
-            97: ('sf1', 'home'), 98: ('sf2', 'home'), 99: ('sf1', 'away'), 100: ('sf2', 'away')
+            97: ('sf1', 'home'), 98: ('sf2', 'home'), 99: ('sf2', 'away'), 100: ('sf1', 'away')
         },
         '半决赛': {
             'sf1': ('final', 'home'),
@@ -978,7 +978,9 @@ def reset_test_data():
             home_yellow_card = 0,
             home_red_card = 0,
             away_yellow_card = 0,
-            away_red_card = 0
+            away_red_card = 0,
+            home_penalty_score = NULL,
+            away_penalty_score = NULL
     ''')
     
     knockout_teams = [
@@ -988,6 +990,19 @@ def reset_test_data():
         (85, 'B1', 'E/F/G/I/J3'), (86, 'D2', 'G2'), (87, 'J1', 'H2'), (88, 'K1', 'D/E/I/J/L3')
     ]
     for mid, home, away in knockout_teams:
+        cursor.execute('UPDATE matches SET home_team = ?, away_team = ? WHERE id = ?', (home, away, mid))
+    
+    later_placeholders = {
+        89: ('73胜者', '75胜者'), 90: ('74胜者', '77胜者'),
+        91: ('76胜者', '78胜者'), 92: ('79胜者', '80胜者'),
+        93: ('83胜者', '84胜者'), 94: ('81胜者', '82胜者'),
+        95: ('86胜者', '88胜者'), 96: ('85胜者', '87胜者'),
+        97: ('89胜者', '90胜者'), 98: ('93胜者', '94胜者'),
+        99: ('91胜者', '92胜者'), 100: ('95胜者', '96胜者'),
+        101: ('97胜者', '98胜者'), 102: ('99胜者', '100胜者'),
+        103: ('101负者', '102负者'), 104: ('101胜者', '102胜者'),
+    }
+    for mid, (home, away) in later_placeholders.items():
         cursor.execute('UPDATE matches SET home_team = ?, away_team = ? WHERE id = ?', (home, away, mid))
     
     conn.commit()
@@ -1097,6 +1112,8 @@ def fill_all_rounds():
     conn.commit()
     conn.close()
     
+    conn = get_db_connection()
+    cursor = conn.cursor()
     cursor.execute('SELECT * FROM matches WHERE match_date LIKE "2026-%" ORDER BY match_date, match_time')
     all_matches = [dict(row) for row in cursor.fetchall()]
     conn.close()

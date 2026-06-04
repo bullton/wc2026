@@ -1044,6 +1044,11 @@ tr.qualified-locked {
             stroke-dasharray: 4,3;
             stroke: rgba(255,255,255,0.2);
         }
+
+        .connector-line.tbd.solid {
+            stroke-dasharray: none;
+            stroke: rgba(255,255,255,0.4);
+        }
         
         .round-header {
             position: absolute;
@@ -2015,6 +2020,7 @@ matches.forEach(match => {
             const awayScoreDisplay = hasPenalty ? `${match.away_score}(${match.away_penalty_score})` : awayScore;
             
             const venueFlag = getVenueFlag(match.venue);
+            const dateText = match.match_date ? match.match_date.slice(5) : '';
             const timeText = match.match_time || '';
             const cityText = match.city || match.venue || '';
             
@@ -2045,7 +2051,7 @@ matches.forEach(match => {
                         <span class="team-score">${awayScoreDisplay}</span>
                     </div>
                     <div class="match-meta">
-                        <span class="meta-time">${timeText}</span>
+                        <span class="meta-time">${dateText} ${timeText}</span>
                     </div>
                 </div>
             `;
@@ -2256,19 +2262,24 @@ matches.forEach(match => {
             
             const paths = [];
             
-            // sf1 → final (实线 绿色) - sf1 在 final 左侧, 从 sf1.right 进入 final.left
+            const sf1Winner = kbGetWinner(kbGetMatch('sf1'));
+            const sf2Winner = kbGetWinner(kbGetMatch('sf2'));
+            
+            // sf1 → final
             const midX1 = (sf1.right + finalC.left) / 2;
-            paths.push(`<path class="connector-line winner" d="M ${sf1.right} ${sf1.centerY} L ${midX1} ${sf1.centerY} L ${midX1} ${finalC.centerY} L ${finalC.left} ${finalC.centerY}" />`);
+            const sf1FinalClass = sf1Winner ? 'connector-line winner' : 'connector-line tbd solid';
+            paths.push(`<path class="${sf1FinalClass}" d="M ${sf1.right} ${sf1.centerY} L ${midX1} ${sf1.centerY} L ${midX1} ${finalC.centerY} L ${finalC.left} ${finalC.centerY}" />`);
             
-            // sf2 → final (实线 绿色) - sf2 在 final 右侧, 从 sf2.left 进入 final.right (与上半区对称)
+            // sf2 → final
             const midX2 = (sf2.left + finalC.right) / 2;
-            paths.push(`<path class="connector-line winner" d="M ${sf2.left} ${sf2.centerY} L ${midX2} ${sf2.centerY} L ${midX2} ${finalC.centerY} L ${finalC.right} ${finalC.centerY}" />`);
+            const sf2FinalClass = sf2Winner ? 'connector-line winner' : 'connector-line tbd solid';
+            paths.push(`<path class="${sf2FinalClass}" d="M ${sf2.left} ${sf2.centerY} L ${midX2} ${sf2.centerY} L ${midX2} ${finalC.centerY} L ${finalC.right} ${finalC.centerY}" />`);
             
-            // sf1 → third (虚线 灰色) - sf1 在 third 左侧
+            // sf1 → third (虚线 灰色)
             const midX3 = (sf1.right + thirdC.left) / 2;
             paths.push(`<path class="connector-line tbd" d="M ${sf1.right} ${sf1.centerY} L ${midX3} ${sf1.centerY} L ${midX3} ${thirdC.centerY} L ${thirdC.left} ${thirdC.centerY}" />`);
             
-            // sf2 → third (虚线 灰色) - sf2 在 third 右侧, 与上半区对称
+            // sf2 → third (虚线 灰色)
             const midX4 = (sf2.left + thirdC.right) / 2;
             paths.push(`<path class="connector-line tbd" d="M ${sf2.left} ${sf2.centerY} L ${midX4} ${sf2.centerY} L ${midX4} ${thirdC.centerY} L ${thirdC.right} ${thirdC.centerY}" />`);
             
