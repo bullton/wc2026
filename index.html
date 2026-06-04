@@ -2012,7 +2012,7 @@ matches.forEach(match => {
             const visibilityStyle = isVisible ? '' : 'visibility: hidden; opacity: 0.3;';
             
             return `
-                <div class="kb-card ${extraClass}" data-match-id="${matchId}" style="${visibilityStyle}">
+                <div class="kb-card ${extraClass}" data-match-id="${matchId}" style="${visibilityStyle}" onclick="showKnockoutEditForm('${matchId}')">
                     <div class="match-no">
                         <span class="match-num">${displayMatchNo}</span>
                         <span class="venue-info">
@@ -2498,7 +2498,75 @@ matches.forEach(match => {
             
             modal.classList.add('active');
         }
-        
+
+        function showKnockoutEditForm(matchId) {
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+            
+            const match = kbGetMatch(matchId);
+            const homeScore = match.home_score && match.home_score !== '' ? match.home_score : '';
+            const awayScore = match.away_score && match.away_score !== '' ? match.away_score : '';
+            const homePenalty = match.home_penalty_score !== null && match.home_penalty_score !== undefined ? match.home_penalty_score : '';
+            const awayPenalty = match.away_penalty_score !== null && match.away_penalty_score !== undefined ? match.away_penalty_score : '';
+            
+            const matchNoMap = {
+                'sf1': '半决赛①', 'sf2': '半决赛②', 'final': '决赛', 'third': '三四名决赛'
+            };
+            const displayName = matchNoMap[matchId] || matchId;
+            
+            title.textContent = `编辑${displayName}`;
+            
+            body.innerHTML = `
+                <div class="edit-form">
+                    <div class="edit-teams-row">
+                        <div class="edit-team-box">
+                            <div class="edit-team-name">${match.home_team || '待定'}</div>
+                            <div class="edit-score-group">
+                                <input type="number" class="edit-score-input" id="editHomeScore" value="${homeScore}" min="0" max="99" placeholder="-">
+                            </div>
+                        </div>
+                        <div class="vs">VS</div>
+                        <div class="edit-team-box">
+                            <div class="edit-team-name">${match.away_team || '待定'}</div>
+                            <div class="edit-score-group">
+                                <input type="number" class="edit-score-input" id="editAwayScore" value="${awayScore}" min="0" max="99" placeholder="-">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="penalty-section" style="margin: 20px 0; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                        <div style="text-align: center; font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px;">
+                            点球大战（120分钟打平后）
+                        </div>
+                        <div style="display: flex; justify-content: center; gap: 30px;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 5px;">${match.home_team || '主队'} 点球</div>
+                                <input type="number" class="edit-score-input" id="editHomePenalty" value="${homePenalty}" min="0" max="20" placeholder="-">
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 5px;">${match.away_team || '客队'} 点球</div>
+                                <input type="number" class="edit-score-input" id="editAwayPenalty" value="${awayPenalty}" min="0" max="20" placeholder="-">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="edit-match-info" style="margin-bottom: 20px;">
+                        <span>📅 ${match.match_date || ''}</span>
+                        <span>⏰ ${match.match_time || ''}</span>
+                        <span>🏟️ ${match.venue || ''}</span>
+                    </div>
+                    
+                    <div class="edit-buttons">
+                        <button class="edit-btn edit-btn-cancel" onclick="closeModal()">取消</button>
+                        <button class="edit-btn edit-btn-save" id="editSaveBtn" onclick="saveKnockoutResult('${matchId}')">保存</button>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.add('active');
+        }
+
         function closeModal() {
             document.getElementById('modal').classList.remove('active');
         }
@@ -2681,6 +2749,49 @@ return false;
                         .then(() => fetchStandings())
                         .then(() => {
                             renderCalendar();
+                            renderBrackets();
+                        });
+                } else {
+                    showToast('保存失败：' + (result.error || '未知错误'), true);
+                }
+            } catch (error) {
+                showToast('网络错误，请重试', true);
+                console.error('保存比赛结果失败:', error);
+            } finally {
+                if (saveBtn) saveBtn.disabled = false;
+            }
+        }
+
+        async function saveKnockoutResult(matchId) {
+            const saveBtn = document.getElementById('editSaveBtn');
+            if (saveBtn) saveBtn.disabled = true;
+            
+            const homeScore = document.getElementById('editHomeScore').value;
+            const awayScore = document.getElementById('editAwayScore').value;
+            const homePenalty = document.getElementById('editHomePenalty').value;
+            const awayPenalty = document.getElementById('editAwayPenalty').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/matches/${matchId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        home_score: homeScore,
+                        away_score: awayScore,
+                        home_penalty_score: homePenalty !== '' ? parseInt(homePenalty) : null,
+                        away_penalty_score: awayPenalty !== '' ? parseInt(awayPenalty) : null
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('比赛结果已保存！');
+                    closeModal();
+                    fetch(`${API_BASE}/refresh-knockout`, { method: 'POST' })
+                        .then(() => fetchMatches())
+                        .then(() => fetchStandings())
+                        .then(() => {
                             renderBrackets();
                         });
                 } else {

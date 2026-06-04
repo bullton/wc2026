@@ -795,14 +795,17 @@ def update_match(match_id):
     home_red = data.get('home_red_card', 0)
     away_yellow = data.get('away_yellow_card', 0)
     away_red = data.get('away_red_card', 0)
+    home_penalty = data.get('home_penalty_score')
+    away_penalty = data.get('away_penalty_score')
 
     cursor.execute('''
         UPDATE matches
         SET home_score = ?, away_score = ?,
             home_yellow_card = ?, home_red_card = ?,
-            away_yellow_card = ?, away_red_card = ?
+            away_yellow_card = ?, away_red_card = ?,
+            home_penalty_score = ?, away_penalty_score = ?
         WHERE id = ?
-    ''', (home_score, away_score, home_yellow, home_red, away_yellow, away_red, match_id))
+    ''', (home_score, away_score, home_yellow, home_red, away_yellow, away_red, home_penalty, away_penalty, match_id))
 
     conn.commit()
     conn.close()
