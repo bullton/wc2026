@@ -1343,34 +1343,102 @@ def get_all_predictions():
 
 @app.route('/api/simulate', methods=['POST'])
 def simulate():
-    """推演世界杯，从当前状态开始模拟淘汰赛"""
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('''
-        SELECT * FROM matches 
-        WHERE match_date LIKE '2026-%' 
-        ORDER BY match_date, match_time
-    ''')
+    cursor.execute("SELECT DISTINCT group_name FROM matches WHERE group_name != '' ORDER BY group_name")
+    groups = [row[0] for row in cursor.fetchall()]
+    
+    cursor.execute("SELECT * FROM matches ORDER BY id")
     all_matches = [dict(row) for row in cursor.fetchall()]
-    
-    knockout_stages = ['1/16决赛', '1/8决赛', '1/4决赛', '半决赛', '决赛']
-    
-    steps = []
-    
     matches_by_id = {m['id']: m for m in all_matches}
     
-    def get_team_name(team_str):
-        if not team_str:
-            return '未知'
-        if team_str.endswith('胜者') or team_str.endswith('负者'):
-            match_id = int(team_str.replace('胜者', '').replace('负者', ''))
-            if match_id in matches_by_id:
-                m = matches_by_id[match_id]
-                return get_team_name(m['home_team']) if '胜者' in team_str else get_team_name(m['away_team'])
-        if '(' in team_str:
-            return team_str.split('(')[0]
-        return team_str
+    group_results = {}
+    group_standings = {}
+    
+    for group in groups:
+        cursor.execute("SELECT * FROM matches WHERE group_name = ? ORDER BY id", (group,))
+        group_matches = [dict(row) for row in cursor.fetchall()]
+        
+        teams = {}
+        for match in group_matches:
+            ht, at = match['home_team'], match['away_team']
+            if ht not in teams:
+                teams[ht] = {'name': ht, 'points': 0, 'gd': 0, 'gf': 0, 'ga': 0, 'played': 0, 'won': 0, 'drawn': 0, 'lost': 0}
+            if at not in teams:
+                teams[at] = {'name': at, 'points': 0, 'gd': 0, 'gf': 0, 'ga': 0, 'played': 0, 'won': 0, 'drawn': 0, 'lost': 0}
+        
+        group_results[group] = []
+        for match in group_matches:
+            ht, at = match['home_team'], match['away_team']
+            hg, ag = generate_random_score()
+            
+            teams[ht]['gf'] += hg
+            teams[ht]['ga'] += ag
+            teams[at]['gf'] += ag
+            teams[at]['ga'] += hg
+            teams[ht]['played'] += 1
+            teams[at]['played'] += 1
+            
+            if hg > ag:
+                teams[ht]['points'] += 3
+                teams[ht]['won'] += 1
+                teams[at]['lost'] += 1
+            elif ag > hg:
+                teams[at]['points'] += 3
+                teams[at]['won'] += 1
+                teams[ht]['lost'] += 1
+            else:
+                teams[ht]['points'] += 1
+                teams[at]['points'] += 1
+                teams[ht]['drawn'] += 1
+                teams[at]['drawn'] += 1
+        
+        for t in teams.values():
+            t['gd'] = t['gf'] - t['ga']
+        
+        standings = sorted(teams.values(), key=lambda x: (-x['points'], -x['gd'], -x['gf']))
+        group_standings[group] = standings
+        
+        group_results[group].append({
+            'stage': f'小组{group}',
+            'standings': [{'name': s['name'], 'points': s['points'], 'gd': s['gd'], 'gf': s['gf']} for s in standings]
+        })
+    
+    all_teams = []
+    for g in groups:
+        s = group_standings[g]
+        all_teams.append({'group': g, 'team': s[0], 'rank': 1})
+        all_teams.append({'group': g, 'team': s[1], 'rank': 2})
+    
+    all_teams.sort(key=lambda x: (-x['team']['points'], -x['team']['gd'], -x['team']['gf']))
+    third_place_teams = [t for t in all_teams if t['rank'] == 2]
+    third_place_teams.sort(key=lambda x: (-x['team']['points'], -x['team']['gd'], -x['team']['gf']))
+    qualified_3rd = [t['team']['name'] for t in third_place_teams[:4]]
+    
+    knockout_teams = {}
+    for t in all_teams:
+        if t['rank'] == 1:
+            g = t['group']
+            knockout_teams[f'{g}1'] = t['team']['name']
+        elif t['rank'] == 2:
+            g = t['group']
+            knockout_teams[f'{g}2'] = t['team']['name']
+    
+    for t in qualified_3rd:
+        knockout_teams['3rd'] = knockout_teams.get('3rd', [])
+        knockout_teams['3rd'].append(t)
+    
+    knockout_teams['3rd'] = qualified_3rd
+    
+    knockout_stages = ['1/16决赛', '1/8决赛', '1/4决赛', '半决赛', '决赛']
+    steps = []
+    for g in groups:
+        steps.append({
+            'stage': f'小组{g}',
+            'standings': [{'name': s['name'], 'points': s['points'], 'gd': s['gd'], 'gf': s['gf']} for s in group_standings[g]]
+        })
+    current_winners = {}
     
     def simulate_match(match_id, home_team, away_team):
         home_goals, away_goals = generate_random_score()
@@ -1396,48 +1464,233 @@ def simulate():
             'loser': loser
         }
     
-    current_winners = {}
+    def resolve_team(team_str):
+        if not team_str:
+            return '未知'
+        if team_str.endswith('胜者') or team_str.endswith('负者'):
+            match_id = int(team_str.replace('胜者', '').replace('负者', ''))
+            if match_id in matches_by_id:
+                m = matches_by_id[match_id]
+                return resolve_team(m['home_team']) if '胜者' in team_str else resolve_team(m['away_team'])
+        if '(' in team_str:
+            return team_str.split('(')[0]
+        if team_str in knockout_teams:
+            return knockout_teams[team_str]
+        if '/' in team_str and team_str.endswith('3'):
+            parts = team_str.split('/')
+            for p in parts:
+                if p.endswith('3'):
+                    g = p.replace('3', '')
+                    if g in group_standings:
+                        s = group_standings[g]
+                        if len(s) >= 3:
+                            return s[2]['name']
+            for t in qualified_3rd:
+                return t
+        return team_str
     
-    for stage in knockout_stages:
-        cursor.execute('SELECT * FROM matches WHERE stage = ?', (stage,))
-        stage_matches = [dict(row) for row in cursor.fetchall()]
+    cursor.execute("SELECT * FROM matches WHERE stage = ? AND home_team NOT LIKE '%胜者%' AND home_team NOT LIKE '%负者%' AND home_team NOT LIKE '%第%' ORDER BY id", ('1/16决赛',))
+    fixed_16 = [dict(row) for row in cursor.fetchall()]
+    
+    if fixed_16:
+        cursor.execute("SELECT * FROM matches WHERE stage = ? AND home_team LIKE '%胜者%' ORDER BY id", ('1/16决赛',))
+        flexible_16 = [dict(row) for row in cursor.fetchall()]
+        all_16 = fixed_16 + flexible_16
+    else:
+        cursor.execute("SELECT * FROM matches WHERE stage = ? ORDER BY id", ('1/16决赛',))
+        all_16 = [dict(row) for row in cursor.fetchall()]
+    
+    for match in all_16:
+        match_id = match['id']
+        home_team = resolve_team(match['home_team'])
+        away_team = resolve_team(match['away_team'])
         
-        if not stage_matches:
+        if home_team == '未知' or away_team == '未知':
             continue
         
-        for match in stage_matches:
+        result = simulate_match(match_id, home_team, away_team)
+        steps.append({
+            'stage': '1/16决赛',
+            'match_id': match_id,
+            'home_team': result['home_team'],
+            'away_team': result['away_team'],
+            'home_score': result['home_score'],
+            'away_score': result['away_score'],
+            'home_penalty': result['home_penalty'],
+            'away_penalty': result['away_penalty'],
+            'winner': result['winner'],
+            'loser': result['loser']
+        })
+        current_winners[match_id] = {'winner': result['winner'], 'loser': result['loser']}
+    
+    knockout_steps = []
+    
+    for stage in knockout_stages[1:]:
+        if stage == '1/8决赛':
+            cursor.execute("SELECT * FROM matches WHERE stage = ? ORDER BY id", (stage,))
+            matches = [dict(row) for row in cursor.fetchall()]
+            for match in matches:
+                match_id = match['id']
+                ht = match['home_team']
+                at = match['away_team']
+                
+                if ht.endswith('胜者'):
+                    mid = int(ht.replace('胜者', ''))
+                    home_team = current_winners.get(mid, {}).get('winner', '未知')
+                elif ht.endswith('负者'):
+                    mid = int(ht.replace('负者', ''))
+                    home_team = current_winners.get(mid, {}).get('loser', '未知')
+                else:
+                    home_team = resolve_team(ht)
+                
+                if at.endswith('胜者'):
+                    mid = int(at.replace('胜者', ''))
+                    away_team = current_winners.get(mid, {}).get('winner', '未知')
+                elif at.endswith('负者'):
+                    mid = int(at.replace('负者', ''))
+                    away_team = current_winners.get(mid, {}).get('loser', '未知')
+                else:
+                    away_team = resolve_team(at)
+                
+                if home_team == '未知' or away_team == '未知':
+                    continue
+                
+                result = simulate_match(match_id, home_team, away_team)
+                steps.append({
+                    'stage': stage,
+                    'match_id': match_id,
+                    'home_team': result['home_team'],
+                    'away_team': result['away_team'],
+                    'home_score': result['home_score'],
+                    'away_score': result['away_score'],
+                    'home_penalty': result['home_penalty'],
+                    'away_penalty': result['away_penalty'],
+                    'winner': result['winner'],
+                    'loser': result['loser']
+                })
+                current_winners[match_id] = {'winner': result['winner'], 'loser': result['loser']}
+        elif stage == '1/4决赛':
+            cursor.execute("SELECT * FROM matches WHERE stage = ? ORDER BY id", (stage,))
+            matches = [dict(row) for row in cursor.fetchall()]
+            for match in matches:
+                match_id = match['id']
+                ht = match['home_team']
+                at = match['away_team']
+                
+                if ht.endswith('胜者'):
+                    mid = int(ht.replace('胜者', ''))
+                    home_team = current_winners.get(mid, {}).get('winner', '未知')
+                elif ht.endswith('负者'):
+                    mid = int(ht.replace('负者', ''))
+                    home_team = current_winners.get(mid, {}).get('loser', '未知')
+                else:
+                    home_team = resolve_team(ht)
+                
+                if at.endswith('胜者'):
+                    mid = int(at.replace('胜者', ''))
+                    away_team = current_winners.get(mid, {}).get('winner', '未知')
+                elif at.endswith('负者'):
+                    mid = int(at.replace('负者', ''))
+                    away_team = current_winners.get(mid, {}).get('loser', '未知')
+                else:
+                    away_team = resolve_team(at)
+                
+                if home_team == '未知' or away_team == '未知':
+                    continue
+                
+                result = simulate_match(match_id, home_team, away_team)
+                steps.append({
+                    'stage': stage,
+                    'match_id': match_id,
+                    'home_team': result['home_team'],
+                    'away_team': result['away_team'],
+                    'home_score': result['home_score'],
+                    'away_score': result['away_score'],
+                    'home_penalty': result['home_penalty'],
+                    'away_penalty': result['away_penalty'],
+                    'winner': result['winner'],
+                    'loser': result['loser']
+                })
+                current_winners[match_id] = {'winner': result['winner'], 'loser': result['loser']}
+        elif stage == '半决赛':
+            cursor.execute("SELECT * FROM matches WHERE stage = ? ORDER BY id", (stage,))
+            for match in cursor.fetchall():
+                match = dict(match)
+                match_id = match['id']
+                
+                ht = match['home_team']
+                at = match['away_team']
+                
+                home_team = '未知'
+                away_team = '未知'
+                
+                if '负者' in ht:
+                    mid = int(ht.replace('负者', ''))
+                    home_team = current_winners.get(mid, {}).get('loser', '未知')
+                elif '胜者' in ht:
+                    mid = int(ht.replace('胜者', ''))
+                    home_team = current_winners.get(mid, {}).get('winner', '未知')
+                
+                if '负者' in at:
+                    mid = int(at.replace('负者', ''))
+                    away_team = current_winners.get(mid, {}).get('loser', '未知')
+                elif '胜者' in at:
+                    mid = int(at.replace('胜者', ''))
+                    away_team = current_winners.get(mid, {}).get('winner', '未知')
+                
+                if home_team == '未知' or away_team == '未知':
+                    continue
+                
+                result = simulate_match(match_id, home_team, away_team)
+                steps.append({
+                    'stage': stage,
+                    'match_id': match_id,
+                    'home_team': result['home_team'],
+                    'away_team': result['away_team'],
+                    'home_score': result['home_score'],
+                    'away_score': result['away_score'],
+                    'home_penalty': result['home_penalty'],
+                    'away_penalty': result['away_penalty'],
+                    'winner': result['winner'],
+                    'loser': result['loser']
+                })
+                current_winners[match_id] = {'winner': result['winner'], 'loser': result['loser']}
+        elif stage == '决赛':
+            cursor.execute("SELECT * FROM matches WHERE stage = ? ORDER BY id", (stage,))
+            match = dict(cursor.fetchone())
             match_id = match['id']
-            home_team = match['home_team']
-            away_team = match['away_team']
             
-            if not home_team or not away_team:
-                continue
+            ht = match['home_team']
+            at = match['away_team']
             
-            actual_home = get_team_name(home_team)
-            actual_away = get_team_name(away_team)
+            home_team = '未知'
+            away_team = '未知'
             
-            if actual_home == '未知' or actual_away == '未知':
-                continue
+            if '胜者' in ht:
+                mid = int(ht.replace('胜者', ''))
+                home_team = current_winners.get(mid, {}).get('winner', '未知')
             
-            result = simulate_match(match_id, actual_home, actual_away)
+            if '胜者' in at:
+                mid = int(at.replace('胜者', ''))
+                away_team = current_winners.get(mid, {}).get('winner', '未知')
             
-            steps.append({
-                'stage': stage,
-                'match_id': match_id,
-                'home_team': result['home_team'],
-                'away_team': result['away_team'],
-                'home_score': result['home_score'],
-                'away_score': result['away_score'],
-                'home_penalty': result['home_penalty'],
-                'away_penalty': result['away_penalty'],
-                'winner': result['winner'],
-                'loser': result['loser']
-            })
-            
-            current_winners[match_id] = {
-                'winner': result['winner'],
-                'loser': result['loser']
-            }
+            if home_team == '未知' or away_team == '未知':
+                pass
+            else:
+                result = simulate_match(match_id, home_team, away_team)
+                steps.append({
+                    'stage': stage,
+                    'match_id': match_id,
+                    'home_team': result['home_team'],
+                    'away_team': result['away_team'],
+                    'home_score': result['home_score'],
+                    'away_score': result['away_score'],
+                    'home_penalty': result['home_penalty'],
+                    'away_penalty': result['away_penalty'],
+                    'winner': result['winner'],
+                    'loser': result['loser']
+                })
+                current_winners[match_id] = {'winner': result['winner'], 'loser': result['loser']}
     
     champion = None
     third_place = None
@@ -1455,7 +1708,8 @@ def simulate():
         'success': True,
         'steps': steps,
         'champion': champion,
-        'third_place': third_place
+        'third_place': third_place,
+        'qualified_3rd': qualified_3rd
     })
 
 if __name__ == '__main__':
