@@ -722,31 +722,62 @@ def apply_knockout_winners():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('SELECT * FROM matches WHERE stage = "1/16决赛"')
-    r16_matches = [dict(row) for row in cursor.fetchall()]
-
-    bracket_mapping = {
-        73: (90, 'home'), 74: (89, 'home'), 75: (90, 'away'), 76: (91, 'home'),
-        77: (89, 'away'), 78: (91, 'away'), 79: (92, 'home'), 80: (92, 'away'),
-        81: (94, 'home'), 82: (94, 'away'), 83: (93, 'home'), 84: (93, 'away'),
-        85: (96, 'home'), 86: (95, 'home'), 87: (96, 'away'), 88: (95, 'away')
-    }
-
-    for match in r16_matches:
+    def get_knockout_winner(match):
         if not match['home_score'] or not match['away_score']:
-            continue
+            return None
         try:
             h = int(match['home_score'])
             a = int(match['away_score'])
-            winner = match['home_team'] if h > a else match['away_team']
-            target_id, slot = bracket_mapping.get(match['id'], (None, None))
+            if h > a:
+                return match['home_team']
+            elif a > h:
+                return match['away_team']
+            else:
+                hp = match.get('home_penalty_score')
+                ap = match.get('away_penalty_score')
+                if hp is not None and ap is not None and hp != '' and ap != '':
+                    if int(hp) > int(ap):
+                        return match['home_team']
+                    else:
+                        return match['away_team']
+                return None
+        except:
+            return None
+
+    stage_mapping = {
+        '1/16决赛': {
+            73: (90, 'home'), 74: (89, 'home'), 75: (90, 'away'), 76: (91, 'home'),
+            77: (89, 'away'), 78: (91, 'away'), 79: (92, 'home'), 80: (92, 'away'),
+            81: (94, 'home'), 82: (94, 'away'), 83: (93, 'home'), 84: (93, 'away'),
+            85: (96, 'home'), 86: (95, 'home'), 87: (96, 'away'), 88: (95, 'away')
+        },
+        '1/8决赛': {
+            89: (97, 'home'), 90: (97, 'away'), 91: (99, 'home'), 92: (99, 'away'),
+            93: (98, 'home'), 94: (98, 'away'), 95: (100, 'home'), 96: (100, 'away')
+        },
+        '1/4决赛': {
+            97: ('sf1', 'home'), 98: ('sf2', 'home'), 99: ('sf1', 'away'), 100: ('sf2', 'away')
+        },
+        '半决赛': {
+            'sf1': ('final', 'home'),
+            'sf2': ('final', 'away')
+        }
+    }
+
+    for stage, mapping in stage_mapping.items():
+        cursor.execute('SELECT * FROM matches WHERE stage = ?', (stage,))
+        matches = [dict(row) for row in cursor.fetchall()]
+        
+        for match in matches:
+            winner = get_knockout_winner(match)
+            if not winner:
+                continue
+            target_id, slot = mapping.get(match['id'] if isinstance(match['id'], int) else match['id'], (None, None))
             if target_id and slot:
                 if slot == 'home':
                     cursor.execute('UPDATE matches SET home_team = ? WHERE id = ?', (winner, target_id))
                 else:
                     cursor.execute('UPDATE matches SET away_team = ? WHERE id = ?', (winner, target_id))
-        except:
-            pass
 
     conn.commit()
     conn.close()

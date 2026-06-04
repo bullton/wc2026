@@ -1965,6 +1965,14 @@ matches.forEach(match => {
             if (isNaN(h) || isNaN(a)) return null;
             if (h > a) return 'home';
             if (a > h) return 'away';
+            if (h === a && match.home_penalty_score !== null && match.away_penalty_score !== null) {
+                const hp = parseInt(match.home_penalty_score);
+                const ap = parseInt(match.away_penalty_score);
+                if (!isNaN(hp) && !isNaN(ap)) {
+                    if (hp > ap) return 'home';
+                    if (ap > hp) return 'away';
+                }
+            }
             return null;
         }
         
