@@ -1456,7 +1456,12 @@ def simulate():
         winner = home_team if home_goals > away_goals else away_team
         loser = away_team if home_goals > away_goals else home_team
         
-        cursor.execute("UPDATE matches SET home_score = ?, away_score = ? WHERE id = ?", (str(home_goals), str(away_goals), match_id))
+        if home_pen is not None:
+            cursor.execute("UPDATE matches SET home_score = ?, away_score = ?, home_penalty_score = ?, away_penalty_score = ? WHERE id = ?", 
+                          (str(home_goals), str(away_goals), str(home_pen), str(away_pen), match_id))
+        else:
+            cursor.execute("UPDATE matches SET home_score = ?, away_score = ? WHERE id = ?", 
+                          (str(home_goals), str(away_goals), match_id))
         
         return {
             'home_team': home_team,
