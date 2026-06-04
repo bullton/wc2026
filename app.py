@@ -1416,11 +1416,12 @@ def simulate():
         s = group_standings[g]
         all_teams.append({'group': g, 'team': s[0], 'rank': 1})
         all_teams.append({'group': g, 'team': s[1], 'rank': 2})
+        all_teams.append({'group': g, 'team': s[2], 'rank': 3})
     
     all_teams.sort(key=lambda x: (-x['team']['points'], -x['team']['gd'], -x['team']['gf']))
-    third_place_teams = [t for t in all_teams if t['rank'] == 2]
+    third_place_teams = [t for t in all_teams if t['rank'] == 3]
     third_place_teams.sort(key=lambda x: (-x['team']['points'], -x['team']['gd'], -x['team']['gf']))
-    qualified_3rd = [t['team']['name'] for t in third_place_teams[:4]]
+    qualified_3rd = [t['team']['name'] for t in third_place_teams[:8]]
     
     knockout_teams = {}
     for t in all_teams:
@@ -1518,7 +1519,22 @@ def simulate():
         if home_team == '未知' or away_team == '未知':
             continue
         
+        cursor.execute('UPDATE matches SET home_team = ?, away_team = ? WHERE id = ?', (home_team, away_team, match_id))
+        
         result = simulate_match(match_id, home_team, away_team)
+        
+        next_match_mapping = {
+            73: ('89', 'home_team'), 74: ('90', 'home_team'), 75: ('89', 'away_team'), 76: ('91', 'home_team'),
+            77: ('90', 'away_team'), 78: ('91', 'away_team'), 79: ('92', 'home_team'), 80: ('92', 'away_team'),
+            81: ('94', 'home_team'), 82: ('94', 'away_team'), 83: ('93', 'home_team'), 84: ('93', 'away_team'),
+            85: ('96', 'home_team'), 86: ('95', 'home_team'), 87: ('96', 'away_team'), 88: ('95', 'away_team')
+        }
+        if match_id in next_match_mapping:
+            next_id_str, slot = next_match_mapping[match_id]
+            next_id = int(next_id_str)
+            winner_team_with_pos = f"{result['winner']}"
+            cursor.execute('UPDATE matches SET {} = ? WHERE id = ?'.format(slot), (winner_team_with_pos, next_id))
+        
         steps.append({
             'stage': '1/16决赛',
             'match_id': match_id,
@@ -1564,6 +1580,16 @@ def simulate():
                     continue
                 
                 result = simulate_match(match_id, home_team, away_team)
+                
+                next_match_mapping_8 = {
+                    89: ('97', 'home_team'), 90: ('97', 'away_team'), 91: ('99', 'home_team'), 92: ('99', 'away_team'),
+                    93: ('98', 'home_team'), 94: ('98', 'away_team'), 95: ('100', 'home_team'), 96: ('100', 'away_team')
+                }
+                if match_id in next_match_mapping_8:
+                    next_id_str, slot = next_match_mapping_8[match_id]
+                    next_id = int(next_id_str)
+                    cursor.execute('UPDATE matches SET {} = ? WHERE id = ?'.format(slot), (result['winner'], next_id))
+                
                 steps.append({
                     'stage': stage,
                     'match_id': match_id,
@@ -1607,6 +1633,15 @@ def simulate():
                     continue
                 
                 result = simulate_match(match_id, home_team, away_team)
+                
+                next_match_mapping_4 = {
+                    97: ('101', 'home_team'), 98: ('102', 'home_team'), 99: ('102', 'away_team'), 100: ('101', 'away_team')
+                }
+                if match_id in next_match_mapping_4:
+                    next_id_str, slot = next_match_mapping_4[match_id]
+                    next_id = int(next_id_str)
+                    cursor.execute('UPDATE matches SET {} = ? WHERE id = ?'.format(slot), (result['winner'], next_id))
+                
                 steps.append({
                     'stage': stage,
                     'match_id': match_id,
@@ -1638,6 +1673,8 @@ def simulate():
                 elif '胜者' in ht:
                     mid = int(ht.replace('胜者', ''))
                     home_team = current_winners.get(mid, {}).get('winner', '未知')
+                elif ht and ht != '待定':
+                    home_team = ht
                 
                 if '负者' in at:
                     mid = int(at.replace('负者', ''))
@@ -1645,11 +1682,27 @@ def simulate():
                 elif '胜者' in at:
                     mid = int(at.replace('胜者', ''))
                     away_team = current_winners.get(mid, {}).get('winner', '未知')
+                elif at and at != '待定':
+                    away_team = at
                 
                 if home_team == '未知' or away_team == '未知':
                     continue
                 
                 result = simulate_match(match_id, home_team, away_team)
+                
+                next_match_mapping_semi = {
+                    101: ('104', 'home_team'), 102: ('104', 'away_team')
+                }
+                if match_id in next_match_mapping_semi:
+                    next_id_str, slot = next_match_mapping_semi[match_id]
+                    next_id = int(next_id_str)
+                    cursor.execute('UPDATE matches SET {} = ? WHERE id = ?'.format(slot), (result['winner'], next_id))
+                
+                if match_id == 101:
+                    cursor.execute('UPDATE matches SET home_team = ? WHERE id = ?', (result['loser'], 103))
+                elif match_id == 102:
+                    cursor.execute('UPDATE matches SET away_team = ? WHERE id = ?', (result['loser'], 103))
+                
                 steps.append({
                     'stage': stage,
                     'match_id': match_id,
@@ -1677,10 +1730,14 @@ def simulate():
             if '胜者' in ht:
                 mid = int(ht.replace('胜者', ''))
                 home_team = current_winners.get(mid, {}).get('winner', '未知')
+            elif ht and ht != '待定':
+                home_team = ht
             
             if '胜者' in at:
                 mid = int(at.replace('胜者', ''))
                 away_team = current_winners.get(mid, {}).get('winner', '未知')
+            elif at and at != '待定':
+                away_team = at
             
             if home_team == '未知' or away_team == '未知':
                 pass
@@ -1699,6 +1756,55 @@ def simulate():
                     'loser': result['loser']
                 })
                 current_winners[match_id] = {'winner': result['winner'], 'loser': result['loser']}
+    
+    cursor.execute("SELECT * FROM matches WHERE stage = ?", ('季军战',))
+    third_match = cursor.fetchone()
+    if third_match:
+        third_match = dict(third_match)
+        third_match_id = third_match['id']
+        ht = third_match['home_team']
+        at = third_match['away_team']
+        
+        home_team = '未知'
+        away_team = '未知'
+        
+        if ht and ht != '待定' and not ht.endswith('负者') and not ht.endswith('胜者'):
+            home_team = ht
+        elif ht.endswith('负者'):
+            mid = int(ht.replace('负者', ''))
+            home_team = current_winners.get(mid, {}).get('loser', '未知')
+        elif ht.endswith('胜者'):
+            mid = int(ht.replace('胜者', ''))
+            home_team = current_winners.get(mid, {}).get('winner', '未知')
+        else:
+            home_team = resolve_team(ht)
+        
+        if at and at != '待定' and not at.endswith('负者') and not at.endswith('胜者'):
+            away_team = at
+        elif at.endswith('负者'):
+            mid = int(at.replace('负者', ''))
+            away_team = current_winners.get(mid, {}).get('loser', '未知')
+        elif at.endswith('胜者'):
+            mid = int(at.replace('胜者', ''))
+            away_team = current_winners.get(mid, {}).get('winner', '未知')
+        else:
+            away_team = resolve_team(at)
+        
+        if home_team != '未知' and away_team != '未知':
+            result = simulate_match(third_match_id, home_team, away_team)
+            steps.append({
+                'stage': '季军战',
+                'match_id': third_match_id,
+                'home_team': result['home_team'],
+                'away_team': result['away_team'],
+                'home_score': result['home_score'],
+                'away_score': result['away_score'],
+                'home_penalty': result['home_penalty'],
+                'away_penalty': result['away_penalty'],
+                'winner': result['winner'],
+                'loser': result['loser']
+            })
+            current_winners[third_match_id] = {'winner': result['winner'], 'loser': result['loser']}
     
     champion = None
     third_place = None
@@ -1950,10 +2056,14 @@ def simulate():
             if '胜者' in ht:
                 mid = int(ht.replace('胜者', ''))
                 home_team = current_winners.get(mid, {}).get('winner', '未知')
+            elif ht and ht != '待定':
+                home_team = ht
             
             if '胜者' in at:
                 mid = int(at.replace('胜者', ''))
                 away_team = current_winners.get(mid, {}).get('winner', '未知')
+            elif at and at != '待定':
+                away_team = at
             
             if home_team == '未知' or away_team == '未知':
                 pass

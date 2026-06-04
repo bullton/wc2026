@@ -1885,12 +1885,14 @@ matches.forEach(match => {
             "94": { to: "98", slot: "away" },
             "95": { to: "100", slot: "home" },
             "96": { to: "100", slot: "away" },
-            "97": { to: "sf1", slot: "home" },
-            "100": { to: "sf1", slot: "away" },
-            "98": { to: "sf2", slot: "home" },
-            "99": { to: "sf2", slot: "away" },
-            "sf1": { to: "final", slot: "home" },
-            "sf2": { to: "final", slot: "away" }
+            "97": { to: "101", slot: "home" },
+            "100": { to: "101", slot: "away" },
+            "98": { to: "102", slot: "home" },
+            "99": { to: "102", slot: "away" },
+            "101": { to: "104", slot: "home", isWinner: true },
+            "102": { to: "104", slot: "away", isWinner: true },
+            "101_loser": { to: "103", slot: "home" },
+            "102_loser": { to: "103", slot: "away" }
         };
         
         const UPPER_HALF = {
@@ -1915,7 +1917,7 @@ matches.forEach(match => {
                 { id: "100", rows: [9, 16] }
             ],
             sf: [
-                { id: "sf1", rows: [1, 16] }
+                { id: "101", rows: [1, 16] }
             ]
         };
         
@@ -1941,7 +1943,7 @@ matches.forEach(match => {
                 { id: "98", rows: [9, 16] }
             ],
             sf: [
-                { id: "sf2", rows: [1, 16] }
+                { id: "102", rows: [1, 16] }
             ]
         };
         
@@ -1983,16 +1985,39 @@ matches.forEach(match => {
         
         function kbApplyAdvancements() {
             Object.keys(KB_BRACKET_MAPPING).forEach(srcId => {
-                const match = matchData[srcId];
-                if (!match) return;
-                const winner = kbGetWinner(match);
-                if (!winner) return;
-                const { to, slot } = KB_BRACKET_MAPPING[srcId];
-                const teamName = winner === 'home' ? match.home_team : match.away_team;
-                const target = kbGetMatch(to);
-                if (slot === 'home') target.home_team = teamName;
-                else target.away_team = teamName;
-                matchData[to] = target;
+                const mapping = KB_BRACKET_MAPPING[srcId];
+                if (mapping.isWinner) {
+                    const match = matchData[srcId];
+                    if (!match) return;
+                    const winner = kbGetWinner(match);
+                    if (!winner) return;
+                    const teamName = winner === 'home' ? match.home_team : match.away_team;
+                    const target = kbGetMatch(mapping.to);
+                    if (mapping.slot === 'home') target.home_team = teamName;
+                    else target.away_team = teamName;
+                    matchData[mapping.to] = target;
+                } else if (srcId.endsWith('_loser')) {
+                    const actualSrcId = srcId.replace('_loser', '');
+                    const match = matchData[actualSrcId];
+                    if (!match) return;
+                    const winner = kbGetWinner(match);
+                    if (!winner) return;
+                    const teamName = winner === 'home' ? match.away_team : match.home_team;
+                    const target = kbGetMatch(mapping.to);
+                    if (mapping.slot === 'home') target.home_team = teamName;
+                    else target.away_team = teamName;
+                    matchData[mapping.to] = target;
+                } else {
+                    const match = matchData[srcId];
+                    if (!match) return;
+                    const winner = kbGetWinner(match);
+                    if (!winner) return;
+                    const teamName = winner === 'home' ? match.home_team : match.away_team;
+                    const target = kbGetMatch(mapping.to);
+                    if (mapping.slot === 'home') target.home_team = teamName;
+                    else target.away_team = teamName;
+                    matchData[mapping.to] = target;
+                }
             });
         }
         
@@ -2025,10 +2050,10 @@ matches.forEach(match => {
             const cityText = match.city || match.venue || '';
             
             const matchNoMap = {
-                'sf1': '半决赛①',
-                'sf2': '半决赛②',
-                'final': '决赛',
-                'third': '三四名决赛'
+                '101': '半决赛①',
+                '102': '半决赛②',
+                '104': '决赛',
+                '103': '三四名决赛'
             };
             const displayMatchNo = matchNoMap[matchId] || `${matchId}`;
             const visibilityStyle = isVisible ? '' : 'visibility: hidden; opacity: 0.3;';
@@ -2234,10 +2259,10 @@ matches.forEach(match => {
             const svg = document.getElementById('centerConnectors');
             if (!wrapper || !svg) return;
             
-            const sf1Card = wrapper.querySelector('[data-match-id="sf1"]');
-            const sf2Card = wrapper.querySelector('[data-match-id="sf2"]');
-            const finalCard = wrapper.querySelector('[data-match-id="final"]');
-            const thirdCard = wrapper.querySelector('[data-match-id="third"]');
+            const sf1Card = wrapper.querySelector('[data-match-id="101"]');
+            const sf2Card = wrapper.querySelector('[data-match-id="102"]');
+            const finalCard = wrapper.querySelector('[data-match-id="104"]');
+            const thirdCard = wrapper.querySelector('[data-match-id="103"]');
             
             if (!sf1Card || !sf2Card || !finalCard || !thirdCard) return;
             
@@ -2262,8 +2287,8 @@ matches.forEach(match => {
             
             const paths = [];
             
-            const sf1Winner = kbGetWinner(kbGetMatch('sf1'));
-            const sf2Winner = kbGetWinner(kbGetMatch('sf2'));
+            const sf1Winner = kbGetWinner(kbGetMatch('101'));
+            const sf2Winner = kbGetWinner(kbGetMatch('102'));
             
             // sf1 → final
             const midX1 = (sf1.right + finalC.left) / 2;
@@ -2316,8 +2341,8 @@ matches.forEach(match => {
             
             if (matchId === '97' || matchId === '100') return true;
             if (matchId === '99' || matchId === '98') return true;
-            if (matchId === 'sf1' || matchId === 'sf2') return true;
-            if (matchId === 'final' || matchId === 'third') return true;
+            if (matchId === '101' || matchId === '102') return true;
+            if (matchId === '104' || matchId === '103') return true;
             
             return true;
         }
@@ -2333,32 +2358,36 @@ matches.forEach(match => {
             kbApplyAdvancements();
             
             // 补全决赛、半决赛、3/4名决赛的信息
-            const finalMatch = kbGetMatch('final');
+            const finalMatch = kbGetMatch('104');
             finalMatch.match_date = '2026-07-20';
             finalMatch.match_time = '03:00';
             finalMatch.venue = '纽约新泽西体育场';
             finalMatch.city = '纽约';
+            matchData['104'] = finalMatch;
             matchData['final'] = finalMatch;
             
-            const thirdMatch = kbGetMatch('third');
+            const thirdMatch = kbGetMatch('103');
             thirdMatch.match_date = '2026-07-19';
             thirdMatch.match_time = '05:00';
             thirdMatch.venue = '迈阿密体育场';
             thirdMatch.city = '迈阿密';
+            matchData['103'] = thirdMatch;
             matchData['third'] = thirdMatch;
             
-            const sf1Match = kbGetMatch('sf1');
+            const sf1Match = kbGetMatch('101');
             sf1Match.match_date = '2026-07-15';
             sf1Match.match_time = '03:00';
             sf1Match.venue = '达拉斯体育场';
             sf1Match.city = '达拉斯';
+            matchData['101'] = sf1Match;
             matchData['sf1'] = sf1Match;
             
-            const sf2Match = kbGetMatch('sf2');
+            const sf2Match = kbGetMatch('102');
             sf2Match.match_date = '2026-07-16';
             sf2Match.match_time = '03:00';
             sf2Match.venue = '亚特兰大体育场';
             sf2Match.city = '亚特兰大';
+            matchData['102'] = sf2Match;
             matchData['sf2'] = sf2Match;
             
             const container = document.getElementById('bracketsContainer');
@@ -2394,11 +2423,11 @@ matches.forEach(match => {
                                 <rect x="11.75" y="27.5" width="8.5" height="1.5" rx="0.3" fill="#DCA105"/>
                             </svg>
                             <div class="bracket-final-title">决赛</div>
-                            ${kbCreateCard('final', 'final')}
+                            ${kbCreateCard('104', 'final')}
                         </div>
                         <div class="third-block">
                             <div class="third-title">🥉 三四名决赛</div>
-                            ${kbCreateCard('third', 'third')}
+                            ${kbCreateCard('103', 'third')}
                         </div>
                     </div>
                     
@@ -2559,7 +2588,7 @@ matches.forEach(match => {
             const awayPenalty = match.away_penalty_score !== null && match.away_penalty_score !== undefined ? match.away_penalty_score : '';
             
             const matchNoMap = {
-                'sf1': '半决赛①', 'sf2': '半决赛②', 'final': '决赛', 'third': '三四名决赛'
+                '101': '半决赛①', '102': '半决赛②', '104': '决赛', '103': '三四名决赛'
             };
             const displayName = matchNoMap[matchId] || matchId;
             
@@ -3223,12 +3252,14 @@ btn.disabled = false;
                 '决赛': '决赛'
             };
             
-            simulationSteps.forEach((step, index) => {
+            let stepCounter = 0;
+            
+            simulationSteps.forEach((step) => {
                 if (step.matches) {
-                    step.matches.forEach((match, mi) => {
+                    step.matches.forEach((match) => {
                         const stepDiv = document.createElement('div');
                         stepDiv.className = 'simulate-step';
-                        stepDiv.id = `step-${index}-${mi}`;
+                        stepDiv.id = `step-${stepCounter}`;
                         
                         const stageLabel = step.stage;
                         const scoreText = `${match.home_score}:${match.away_score}`;
@@ -3238,11 +3269,12 @@ btn.disabled = false;
                             <span class="score" style="opacity:0">${scoreText}</span>
                         `;
                         stepsContainer.appendChild(stepDiv);
+                        stepCounter++;
                     });
                 } else {
                     const stepDiv = document.createElement('div');
                     stepDiv.className = 'simulate-step';
-                    stepDiv.id = `step-${index}`;
+                    stepDiv.id = `step-${stepCounter}`;
                     
                     const stageLabel = stageNames[step.stage] || step.stage;
                     const penaltyText = (step.home_penalty != null) ? ` (点球 ${step.home_penalty}:${step.away_penalty})` : '';
@@ -3253,10 +3285,11 @@ btn.disabled = false;
                         <span class="score" style="opacity:0">${scoreText}</span>
                     `;
                     stepsContainer.appendChild(stepDiv);
+                    stepCounter++;
                 }
             });
             
-            totalSteps = getTotalSteps();
+            totalSteps = stepCounter;
             currentStepIndex = 0;
             animateSteps();
         }
@@ -3272,6 +3305,7 @@ btn.disabled = false;
                 stepDiv.classList.add('active');
                 const scoreSpan = stepDiv.querySelector('.score');
                 if (scoreSpan) scoreSpan.style.opacity = '1';
+                stepDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
             
             if (currentStepIndex > 0) {
@@ -3317,6 +3351,12 @@ btn.disabled = false;
             document.getElementById('simulateLoading').style.display = 'block';
             document.getElementById('championDisplay').classList.remove('show');
             document.getElementById('simulateSteps').innerHTML = '';
+            Promise.all([fetchStandings(), fetchMatches()]).then(() => {
+                currentMonth = 7;
+                renderCalendar();
+                renderBrackets();
+                renderStandings();
+            });
         }
     </script>
     <button class="reset-btn" id="resetDataBtn" onclick="resetAllData()">🔄 重置数据</button>
