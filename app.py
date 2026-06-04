@@ -655,40 +655,40 @@ def update_knockout_matches(matches):
         third_place_teams = calculate_all_third_place_teams(matches)
         if third_place_teams:
             slot_groups = {
-            'A/B/C/D/F3': ['A', 'B', 'C', 'D', 'F'],
-            'C/D/F/G/H3': ['C', 'D', 'F', 'G', 'H'],
-            'C/E/F/H/I3': ['C', 'E', 'F', 'H', 'I'],
-            'E/H/I/J/K3': ['E', 'H', 'I', 'J', 'K'],
-            'A/E/H/I/J3': ['A', 'E', 'H', 'I', 'J'],
-            'B/E/F/I/J3': ['B', 'E', 'F', 'I', 'J'],
-            'E/F/G/I/J3': ['E', 'F', 'G', 'I', 'J'],
-            'D/E/I/J/L3': ['D', 'E', 'I', 'J', 'L']
-        }
+                'A/B/C/D/F3': ['A', 'B', 'C', 'D', 'F'],
+                'C/D/F/G/H3': ['C', 'D', 'F', 'G', 'H'],
+                'C/E/F/H/I3': ['C', 'E', 'F', 'H', 'I'],
+                'E/H/I/J/K3': ['E', 'H', 'I', 'J', 'K'],
+                'A/E/H/I/J3': ['A', 'E', 'H', 'I', 'J'],
+                'B/E/F/I/J3': ['B', 'E', 'F', 'I', 'J'],
+                'E/F/G/I/J3': ['E', 'F', 'G', 'I', 'J'],
+                'D/E/I/J/L3': ['D', 'E', 'I', 'J', 'L']
+            }
 
-        third_by_group = {t['group']: t for t in third_place_teams}
-        third_ranks = {t['group']: i for i, t in enumerate(third_place_teams)}
-        third_slots = list(slot_groups.keys())
+            third_by_group = {t['group']: t for t in third_place_teams}
+            third_ranks = {t['group']: i for i, t in enumerate(third_place_teams)}
+            third_slots = list(slot_groups.keys())
 
-        def solve_backtrack(assignment, used_groups):
-            if len(assignment) == len(third_slots):
-                return assignment
-            slot = third_slots[len(assignment)]
-            eligible = slot_groups[slot]
-            available = [g for g in eligible if g in third_by_group and g not in used_groups]
-            if not available:
+            def solve_backtrack(assignment, used_groups):
+                if len(assignment) == len(third_slots):
+                    return assignment
+                slot = third_slots[len(assignment)]
+                eligible = slot_groups[slot]
+                available = [g for g in eligible if g in third_by_group and g not in used_groups]
+                if not available:
+                    return None
+                available.sort(key=lambda g: third_ranks[g])
+                for g in available:
+                    new_assignment = assignment.copy()
+                    new_assignment[slot] = third_by_group[g]
+                    new_used = used_groups.copy()
+                    new_used.add(g)
+                    result = solve_backtrack(new_assignment, used_groups)
+                    if result:
+                        return result
                 return None
-            available.sort(key=lambda g: third_ranks[g])
-            for g in available:
-                new_assignment = assignment.copy()
-                new_assignment[slot] = third_by_group[g]
-                new_used = used_groups.copy()
-                new_used.add(g)
-                result = solve_backtrack(new_assignment, used_groups)
-                if result:
-                    return result
-            return None
 
-        optimal_assignment = solve_backtrack({}, set())
+            optimal_assignment = solve_backtrack({}, set())
 
         if optimal_assignment:
             slot_to_team = {}
@@ -1356,7 +1356,7 @@ if __name__ == '__main__':
 
     init_db()
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=port, use_reloader=False)
 
 @app.route('/api/simulate', methods=['POST'])
 def simulate():
