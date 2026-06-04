@@ -1944,6 +1944,8 @@ matches.forEach(match => {
                 away_team: '待定',
                 home_score: null,
                 away_score: null,
+                home_penalty_score: null,
+                away_penalty_score: null,
                 match_date: '',
                 match_time: '',
                 venue: '',
@@ -2517,6 +2519,8 @@ matches.forEach(match => {
             
             title.textContent = `编辑${displayName}`;
             
+            loadExistingPrediction(match.id);
+            
             body.innerHTML = `
                 <div class="edit-form">
                     <div class="edit-teams-row">
@@ -2532,6 +2536,15 @@ matches.forEach(match => {
                             <div class="edit-score-group">
                                 <input type="number" class="edit-score-input" id="editAwayScore" value="${awayScore}" min="0" max="99" placeholder="-">
                             </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ai-predict-section" id="aiPredictSection">
+                        <button class="ai-predict-btn" id="aiPredictBtn" onclick="predictMatch('${matchId}')">🤖 AI预测比分</button>
+                        <div class="ai-result" id="aiResult${matchId}" style="display:none;">
+                            <div class="ai-prediction-header">AI预测结果</div>
+                            <div class="ai-prediction-score" id="aiScore${matchId}"></div>
+                            <div class="ai-prediction-reason" id="aiReason${matchId}"></div>
                         </div>
                     </div>
                     
