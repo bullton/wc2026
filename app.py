@@ -722,27 +722,66 @@ def apply_knockout_winners():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    def get_knockout_winner(match):
-        if not match['home_score'] or not match['away_score']:
-            return None
-        try:
-            h = int(match['home_score'])
-            a = int(match['away_score'])
-            if h > a:
-                return match['home_team']
-            elif a > h:
-                return match['away_team']
-            else:
-                hp = match.get('home_penalty_score')
-                ap = match.get('away_penalty_score')
-                if hp is not None and ap is not None and hp != '' and ap != '':
-                    if int(hp) > int(ap):
-                        return match['home_team']
-                    else:
-                        return match['away_team']
+    def get_actual_winner(match_id):
+        """获取比赛的实际胜者队名（追溯到源头）"""
+        visited = set()
+        while True:
+            if match_id in visited:
                 return None
-        except:
-            return None
+            visited.add(match_id)
+            
+            cursor.execute('''
+                SELECT home_team, away_team, home_score, away_score, home_penalty_score, away_penalty_score 
+                FROM matches WHERE id = ?
+            ''', (match_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            
+            home_team, away_team = row[0], row[1]
+            home_score, away_score = row[2], row[3]
+            home_penalty, away_penalty = row[4], row[5]
+            
+            # 检查是否是占位符
+            is_placeholder = home_team.endswith('胜者') or home_team.endswith('负者') or \
+                           home_team.endswith('第1') or home_team.endswith('第2') or home_team.endswith('第3')
+            
+            if home_score is None or home_score == '' or away_score is None or away_score == '':
+                return None
+            
+            h = int(home_score)
+            a = int(away_score)
+            
+            if h > a:
+                winner = home_team
+            elif a > h:
+                winner = away_team
+            else:
+                # 点球决胜
+                if home_penalty is not None and home_penalty != '' and away_penalty is not None and away_penalty != '':
+                    winner = home_team if int(home_penalty) > int(away_penalty) else away_team
+                else:
+                    return None
+            
+            # 如果不是占位符，返回真实队名
+            is_wp = winner.endswith('胜者') or winner.endswith('负者') or \
+                   winner.endswith('第1') or winner.endswith('第2') or winner.endswith('第3')
+            if not is_wp:
+                return winner
+            
+            # 是占位符，追溯到源比赛
+            if winner.endswith('胜者'):
+                try:
+                    match_id = int(winner.replace('胜者', ''))
+                except:
+                    return winner
+            elif winner.endswith('负者'):
+                try:
+                    match_id = int(winner.replace('负者', ''))
+                except:
+                    return winner
+            else:
+                return winner
 
     stage_mapping = {
         '1/16决赛': {
@@ -756,11 +795,10 @@ def apply_knockout_winners():
             93: (98, 'home'), 94: (98, 'away'), 95: (100, 'home'), 96: (100, 'away')
         },
         '1/4决赛': {
-            97: ('sf1', 'home'), 98: ('sf2', 'home'), 99: ('sf2', 'away'), 100: ('sf1', 'away')
+            97: (101, 'home'), 98: (102, 'home'), 99: (102, 'away'), 100: (101, 'away')
         },
         '半决赛': {
-            'sf1': ('final', 'home'),
-            'sf2': ('final', 'away')
+            101: (104, 'home'), 102: (104, 'away')
         }
     }
 
@@ -769,16 +807,63 @@ def apply_knockout_winners():
         matches = [dict(row) for row in cursor.fetchall()]
         
         for match in matches:
-            winner = get_knockout_winner(match)
+            match_id = match['id']
+            if match_id not in mapping:
+                continue
+            
+            winner = get_actual_winner(match_id)
             if not winner:
                 continue
-            target_id, slot = mapping.get(match['id'] if isinstance(match['id'], int) else match['id'], (None, None))
+            
+            target_id, slot = mapping[match_id]
             if target_id and slot:
                 if slot == 'home':
                     cursor.execute('UPDATE matches SET home_team = ? WHERE id = ?', (winner, target_id))
                 else:
                     cursor.execute('UPDATE matches SET away_team = ? WHERE id = ?', (winner, target_id))
-
+    
+    # 处理三四名决赛 - 半决赛负者进入三四名决赛
+    cursor.execute('SELECT id, home_team, away_team, home_score, away_score, home_penalty_score, away_penalty_score FROM matches WHERE id IN (101, 102)')
+    for sf_match in cursor.fetchall():
+        sf_id = sf_match[0]
+        sf_home = sf_match[1]
+        sf_away = sf_match[2]
+        sf_hs = sf_match[3]
+        sf_as = sf_match[4]
+        sf_hp = sf_match[5]
+        sf_ap = sf_match[6]
+        
+        if not sf_hs or not sf_as or sf_hs == '' or sf_as == '':
+            continue
+        
+        h = int(sf_hs)
+        a = int(sf_as)
+        
+        loser = None
+        if h > a:
+            loser = sf_away
+        elif a > h:
+            loser = sf_home
+        else:
+            if sf_hp and sf_hp != '' and sf_ap and sf_ap != '':
+                loser = sf_home if int(sf_hp) < int(sf_ap) else sf_away
+            else:
+                continue
+        
+        # 如果loser是占位符，追溯真实队名
+        if loser.endswith('胜者') or loser.endswith('负者') or loser.endswith('第1') or loser.endswith('第2') or loser.endswith('第3'):
+            loser_id = int(loser.replace('负者', '').replace('胜者', ''))
+            loser = get_actual_winner(loser_id)
+        
+        if not loser or loser.endswith('胜者') or loser.endswith('负者'):
+            continue
+        
+        # 101的负者 → 103主场，102的负者 → 103客场
+        if sf_id == 101:
+            cursor.execute('UPDATE matches SET home_team = ? WHERE id = ?', (loser, 103))
+        elif sf_id == 102:
+            cursor.execute('UPDATE matches SET away_team = ? WHERE id = ?', (loser, 103))
+    
     conn.commit()
     conn.close()
 
