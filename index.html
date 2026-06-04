@@ -3094,9 +3094,6 @@ btn.disabled = false;
             opacity: 0;
             transition: opacity 0.3s;
         }
-        .simulate-step.active .score {
-            opacity: 1;
-        }
         .simulate-step.done .score {
             opacity: 1;
             color: #10b981;
@@ -3238,7 +3235,7 @@ btn.disabled = false;
                         
                         stepDiv.innerHTML = `
                             <span class="match-info">${stageLabel} - ${match.home_team} vs ${match.away_team}</span>
-                            <span class="score">${scoreText}</span>
+                            <span class="score" style="opacity:0">${scoreText}</span>
                         `;
                         stepsContainer.appendChild(stepDiv);
                     });
@@ -3248,12 +3245,12 @@ btn.disabled = false;
                     stepDiv.id = `step-${index}`;
                     
                     const stageLabel = stageNames[step.stage] || step.stage;
-                    const penaltyText = step.home_penalty ? ` (点球 ${step.home_penalty}:${step.away_penalty})` : '';
+                    const penaltyText = (step.home_penalty != null) ? ` (点球 ${step.home_penalty}:${step.away_penalty})` : '';
                     const scoreText = `${step.home_score}:${step.away_score}${penaltyText}`;
                     
                     stepDiv.innerHTML = `
                         <span class="match-info">${stageLabel} - ${step.home_team} vs ${step.away_team}</span>
-                        <span class="score">${scoreText}</span>
+                        <span class="score" style="opacity:0">${scoreText}</span>
                     `;
                     stepsContainer.appendChild(stepDiv);
                 }
@@ -3273,6 +3270,8 @@ btn.disabled = false;
             const stepDiv = document.getElementById(`step-${currentStepIndex}`);
             if (stepDiv) {
                 stepDiv.classList.add('active');
+                const scoreSpan = stepDiv.querySelector('.score');
+                if (scoreSpan) scoreSpan.style.opacity = '1';
             }
             
             if (currentStepIndex > 0) {
