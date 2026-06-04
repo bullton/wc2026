@@ -1586,7 +1586,7 @@ matches.forEach(match => {
                     }
                     const isKnockout = !match.group_name || match.group_name === '';
                     const hasPenalty = isKnockout && match.home_penalty_score !== null && match.away_penalty_score !== null;
-                    const penaltyStr = hasPenalty ? ` <span style="color: var(--accent); font-size: 0.85em;">(${match.home_penalty_score}-${match.away_penalty_score}p)</span>` : '';
+                    const penaltyStr = hasPenalty ? ` <span style="color: var(--accent); font-size: 0.85em;">(${match.home_penalty_score}-${match.away_penalty_score})</span>` : '';
                     const scoreStr = (match.home_score !== '' && match.away_score !== '') 
                             ? `<span class="score-display">${match.home_score} : ${match.away_score}${penaltyStr}</span>` 
                             : '<span class="vs-text">vs</span>';
@@ -2003,8 +2003,8 @@ matches.forEach(match => {
             const homeScore = isScheduled ? '-' : (match.home_score ?? '-');
             const awayScore = isScheduled ? '-' : (match.away_score ?? '-');
             const hasPenalty = !isScheduled && match.home_penalty_score !== null && match.away_penalty_score !== null;
-            const homeScoreDisplay = hasPenalty ? `${match.home_score}(${match.home_penalty_score}p)` : homeScore;
-            const awayScoreDisplay = hasPenalty ? `${match.away_score}(${match.away_penalty_score}p)` : awayScore;
+            const homeScoreDisplay = hasPenalty ? `${match.home_score}(${match.home_penalty_score})` : homeScore;
+            const awayScoreDisplay = hasPenalty ? `${match.away_score}(${match.away_penalty_score})` : awayScore;
             
             const venueFlag = getVenueFlag(match.venue);
             const timeText = match.match_time || '';
