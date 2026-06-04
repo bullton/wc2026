@@ -3170,6 +3170,7 @@ btn.disabled = false;
         let simulationSteps = [];
         let currentStepIndex = 0;
         let simulationInterval = null;
+        let totalSteps = 0;
         
         async function startSimulation() {
             const overlay = document.getElementById('simulateOverlay');
@@ -3195,6 +3196,18 @@ btn.disabled = false;
             }
         }
         
+        function getTotalSteps() {
+            let total = 0;
+            for (let step of simulationSteps) {
+                if (step.matches) {
+                    total += step.matches.length;
+                } else {
+                    total += 1;
+                }
+            }
+            return total;
+        }
+        
         function displaySimulationSteps() {
             const stepsContainer = document.getElementById('simulateSteps');
             stepsContainer.innerHTML = '';
@@ -3208,26 +3221,45 @@ btn.disabled = false;
             };
             
             simulationSteps.forEach((step, index) => {
-                const stepDiv = document.createElement('div');
-                stepDiv.className = 'simulate-step';
-                stepDiv.id = `step-${index}`;
-                
-                const stageLabel = stageNames[step.stage] || step.stage;
-                const penaltyText = step.home_penalty ? ` (点球 ${step.home_penalty}:${step.away_penalty})` : '';
-                const scoreText = `${step.home_score}:${step.away_score}${penaltyText}`;
-                
-                stepDiv.innerHTML = `
-                    <span class="match-info">${stageLabel} - ${step.home_team} vs ${step.away_team}</span>
-                    <span class="score">${scoreText}</span>
-                `;
-                stepsContainer.appendChild(stepDiv);
+                if (step.matches) {
+                    step.matches.forEach((match, mi) => {
+                        const stepDiv = document.createElement('div');
+                        stepDiv.className = 'simulate-step';
+                        stepDiv.id = `step-${index}-${mi}`;
+                        
+                        const stageLabel = step.stage;
+                        const scoreText = `${match.home_score}:${match.away_score}`;
+                        
+                        stepDiv.innerHTML = `
+                            <span class="match-info">${stageLabel} - ${match.home_team} vs ${match.away_team}</span>
+                            <span class="score">${scoreText}</span>
+                        `;
+                        stepsContainer.appendChild(stepDiv);
+                    });
+                } else {
+                    const stepDiv = document.createElement('div');
+                    stepDiv.className = 'simulate-step';
+                    stepDiv.id = `step-${index}`;
+                    
+                    const stageLabel = stageNames[step.stage] || step.stage;
+                    const penaltyText = step.home_penalty ? ` (点球 ${step.home_penalty}:${step.away_penalty})` : '';
+                    const scoreText = `${step.home_score}:${step.away_score}${penaltyText}`;
+                    
+                    stepDiv.innerHTML = `
+                        <span class="match-info">${stageLabel} - ${step.home_team} vs ${step.away_team}</span>
+                        <span class="score">${scoreText}</span>
+                    `;
+                    stepsContainer.appendChild(stepDiv);
+                }
             });
             
+            totalSteps = getTotalSteps();
+            currentStepIndex = 0;
             animateSteps();
         }
         
         function animateSteps() {
-            if (currentStepIndex >= simulationSteps.length) {
+            if (currentStepIndex >= totalSteps) {
                 showChampion();
                 return;
             }
