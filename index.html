@@ -2423,6 +2423,9 @@ matches.forEach(match => {
             const homeRed = match.home_red_card || 0;
             const awayYellow = match.away_yellow_card || 0;
             const awayRed = match.away_red_card || 0;
+            const homePenalty = match.home_penalty_score !== null && match.home_penalty_score !== undefined ? match.home_penalty_score : '';
+            const awayPenalty = match.away_penalty_score !== null && match.away_penalty_score !== undefined ? match.away_penalty_score : '';
+            const isKnockout = !match.group_name || match.group_name === '';
             
             body.innerHTML = `
                 <div class="edit-form">
@@ -2450,6 +2453,24 @@ matches.forEach(match => {
                             <div class="ai-prediction-reason" id="aiReason${match.id}"></div>
                         </div>
                     </div>
+                    
+                    ${isKnockout ? `
+                    <div class="penalty-section" style="margin: 20px 0; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                        <div style="text-align: center; font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px;">
+                            点球大战（120分钟打平后）
+                        </div>
+                        <div style="display: flex; justify-content: center; gap: 30px;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 5px;">${match.home_team} 点球</div>
+                                <input type="number" class="edit-score-input" id="editHomePenalty" value="${homePenalty}" min="0" max="20" placeholder="-">
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 5px;">${match.away_team} 点球</div>
+                                <input type="number" class="edit-score-input" id="editAwayPenalty" value="${awayPenalty}" min="0" max="20" placeholder="-">
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
                     
                     <div class="edit-cards-group">
                         <div style="text-align: center; font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">
@@ -2731,6 +2752,10 @@ return false;
             const homeRed = document.getElementById('editHomeRed').value || 0;
             const awayYellow = document.getElementById('editAwayYellow').value || 0;
             const awayRed = document.getElementById('editAwayRed').value || 0;
+            const homePenaltyEl = document.getElementById('editHomePenalty');
+            const awayPenaltyEl = document.getElementById('editAwayPenalty');
+            const homePenalty = homePenaltyEl ? (homePenaltyEl.value !== '' ? parseInt(homePenaltyEl.value) : null) : null;
+            const awayPenalty = awayPenaltyEl ? (awayPenaltyEl.value !== '' ? parseInt(awayPenaltyEl.value) : null) : null;
             
             try {
                 const response = await fetch(`${API_BASE}/matches/${matchId}`, {
@@ -2742,7 +2767,9 @@ return false;
                         home_yellow_card: parseInt(homeYellow),
                         home_red_card: parseInt(homeRed),
                         away_yellow_card: parseInt(awayYellow),
-                        away_red_card: parseInt(awayRed)
+                        away_red_card: parseInt(awayRed),
+                        home_penalty_score: homePenalty,
+                        away_penalty_score: awayPenalty
                     })
                 });
                 
