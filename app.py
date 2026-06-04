@@ -1359,3 +1359,120 @@ if __name__ == '__main__':
     init_db()
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=True, host='0.0.0.0', port=port)
+
+@app.route('/api/simulate', methods=['POST'])
+def simulate():
+    """推演世界杯，从当前状态开始模拟淘汰赛"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT * FROM matches 
+        WHERE match_date LIKE '2026-%' 
+        ORDER BY match_date, match_time
+    ''')
+    all_matches = [dict(row) for row in cursor.fetchall()]
+    
+    knockout_stages = ['1/16决赛', '1/8决赛', '1/4决赛', '半决赛', '决赛']
+    
+    steps = []
+    
+    matches_by_id = {m['id']: m for m in all_matches}
+    
+    def get_team_name(team_str):
+        if not team_str:
+            return '未知'
+        if team_str.endswith('胜者') or team_str.endswith('负者'):
+            match_id = int(team_str.replace('胜者', '').replace('负者', ''))
+            if match_id in matches_by_id:
+                m = matches_by_id[match_id]
+                return get_team_name(m['home_team']) if '胜者' in team_str else get_team_name(m['away_team'])
+        if '(' in team_str:
+            return team_str.split('(')[0]
+        return team_str
+    
+    def simulate_match(match_id, home_team, away_team):
+        home_goals, away_goals = generate_random_score()
+        
+        if home_goals == away_goals:
+            home_pen, away_pen = random.randint(1, 5), random.randint(1, 5)
+            while home_pen == away_pen:
+                home_pen, away_pen = random.randint(1, 5), random.randint(1, 5)
+        else:
+            home_pen, away_pen = None, None
+        
+        winner = home_team if home_goals > away_goals else away_team
+        loser = away_team if home_goals > away_goals else home_team
+        
+        return {
+            'home_team': home_team,
+            'away_team': away_team,
+            'home_score': home_goals,
+            'away_score': away_goals,
+            'home_penalty': home_pen,
+            'away_penalty': away_pen,
+            'winner': winner,
+            'loser': loser
+        }
+    
+    current_winners = {}
+    
+    for stage in knockout_stages:
+        cursor.execute('SELECT * FROM matches WHERE stage = ?', (stage,))
+        stage_matches = [dict(row) for row in cursor.fetchall()]
+        
+        if not stage_matches:
+            continue
+        
+        for match in stage_matches:
+            match_id = match['id']
+            home_team = match['home_team']
+            away_team = match['away_team']
+            
+            if not home_team or not away_team:
+                continue
+            
+            actual_home = get_team_name(home_team)
+            actual_away = get_team_name(away_team)
+            
+            if actual_home == '未知' or actual_away == '未知':
+                continue
+            
+            result = simulate_match(match_id, actual_home, actual_away)
+            
+            steps.append({
+                'stage': stage,
+                'match_id': match_id,
+                'home_team': result['home_team'],
+                'away_team': result['away_team'],
+                'home_score': result['home_score'],
+                'away_score': result['away_score'],
+                'home_penalty': result['home_penalty'],
+                'away_penalty': result['away_penalty'],
+                'winner': result['winner'],
+                'loser': result['loser']
+            })
+            
+            current_winners[match_id] = {
+                'winner': result['winner'],
+                'loser': result['loser']
+            }
+    
+    champion = None
+    third_place = None
+    
+    if 104 in current_winners:
+        champion = current_winners[104]['winner']
+    if 103 in current_winners:
+        third_place = current_winners[103]['winner']
+    elif 101 in current_winners and 102 in current_winners:
+        third_place = current_winners[101]['loser']
+    
+    conn.close()
+    
+    return jsonify({
+        'success': True,
+        'steps': steps,
+        'champion': champion,
+        'third_place': third_place
+    })
