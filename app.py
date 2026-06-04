@@ -690,30 +690,30 @@ def update_knockout_matches(matches):
 
             optimal_assignment = solve_backtrack({}, set())
 
-        if optimal_assignment:
-            slot_to_team = {}
-            for slot, team_data in optimal_assignment.items():
-                slot_to_team[slot] = f"{team_data['team']}({slot})"
+            if optimal_assignment:
+                slot_to_team = {}
+                for slot, team_data in optimal_assignment.items():
+                    slot_to_team[slot] = f"{team_data['team']}({slot})"
 
-            for match in matches:
-                if match['stage'] != '1/16决赛':
-                    continue
-                home = match['home_team']
-                away = match['away_team']
-                third_slots_list = list(slot_groups.keys())
-                current_slot = None
-                if home in third_slots_list:
-                    current_slot = home
-                elif away in third_slots_list:
-                    current_slot = away
-                else:
-                    continue
-                if current_slot in slot_to_team:
-                    team_name = slot_to_team[current_slot]
-                    if home == current_slot:
-                        cursor.execute('UPDATE matches SET home_team = ? WHERE id = ?', (team_name, match['id']))
+                for match in matches:
+                    if match['stage'] != '1/16决赛':
+                        continue
+                    home = match['home_team']
+                    away = match['away_team']
+                    third_slots_list = list(slot_groups.keys())
+                    current_slot = None
+                    if home in third_slots_list:
+                        current_slot = home
+                    elif away in third_slots_list:
+                        current_slot = away
                     else:
-                        cursor.execute('UPDATE matches SET away_team = ? WHERE id = ?', (team_name, match['id']))
+                        continue
+                    if current_slot in slot_to_team:
+                        team_name = slot_to_team[current_slot]
+                        if home == current_slot:
+                            cursor.execute('UPDATE matches SET home_team = ? WHERE id = ?', (team_name, match['id']))
+                        else:
+                            cursor.execute('UPDATE matches SET away_team = ? WHERE id = ?', (team_name, match['id']))
 
     conn.commit()
     conn.close()
@@ -1341,23 +1341,6 @@ def get_all_predictions():
         'predictions': [dict(row) for row in predictions]
     })
 
-if __name__ == '__main__':
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS match_predictions (
-            match_id INTEGER PRIMARY KEY,
-            prediction TEXT,
-            reason TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-    init_db()
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=port, use_reloader=False)
-
 @app.route('/api/simulate', methods=['POST'])
 def simulate():
     """推演世界杯，从当前状态开始模拟淘汰赛"""
@@ -1474,3 +1457,20 @@ def simulate():
         'champion': champion,
         'third_place': third_place
     })
+
+if __name__ == '__main__':
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS match_predictions (
+            match_id INTEGER PRIMARY KEY,
+            prediction TEXT,
+            reason TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+    init_db()
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port, use_reloader=False)
