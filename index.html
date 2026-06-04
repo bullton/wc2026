@@ -1584,8 +1584,11 @@ matches.forEach(match => {
                             awayName = getR16Placeholder(match.id, 'away');
                         }
                     }
+                    const isKnockout = !match.group_name || match.group_name === '';
+                    const hasPenalty = isKnockout && match.home_penalty_score !== null && match.away_penalty_score !== null;
+                    const penaltyStr = hasPenalty ? ` <span style="color: var(--accent); font-size: 0.85em;">(${match.home_penalty_score}-${match.away_penalty_score}p)</span>` : '';
                     const scoreStr = (match.home_score !== '' && match.away_score !== '') 
-                            ? `<span class="score-display">${match.home_score} : ${match.away_score}</span>` 
+                            ? `<span class="score-display">${match.home_score} : ${match.away_score}${penaltyStr}</span>` 
                             : '<span class="vs-text">vs</span>';
                     matchItem.innerHTML = `
                         <div class="match-time">${match.match_time}</div>
@@ -1999,6 +2002,9 @@ matches.forEach(match => {
                 : match.away_team;
             const homeScore = isScheduled ? '-' : (match.home_score ?? '-');
             const awayScore = isScheduled ? '-' : (match.away_score ?? '-');
+            const hasPenalty = !isScheduled && match.home_penalty_score !== null && match.away_penalty_score !== null;
+            const homeScoreDisplay = hasPenalty ? `${match.home_score}(${match.home_penalty_score}p)` : homeScore;
+            const awayScoreDisplay = hasPenalty ? `${match.away_score}(${match.away_penalty_score}p)` : awayScore;
             
             const venueFlag = getVenueFlag(match.venue);
             const timeText = match.match_time || '';
@@ -2024,11 +2030,11 @@ matches.forEach(match => {
                     </div>
                     <div class="team ${homeWin}">
                         <span class="team-name ${homeIsPlaceholder ? 'tbd' : ''}">${homeName}</span>
-                        <span class="team-score">${homeScore}</span>
+                        <span class="team-score">${homeScoreDisplay}</span>
                     </div>
                     <div class="team ${awayWin}">
                         <span class="team-name ${awayIsPlaceholder ? 'tbd' : ''}">${awayName}</span>
-                        <span class="team-score">${awayScore}</span>
+                        <span class="team-score">${awayScoreDisplay}</span>
                     </div>
                     <div class="match-meta">
                         <span class="meta-time">${timeText}</span>
