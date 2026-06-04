@@ -17,6 +17,8 @@ def init_db():
             away_team TEXT NOT NULL,
             home_score TEXT,
             away_score TEXT,
+            home_penalty_score TEXT,
+            away_penalty_score TEXT,
             home_yellow_card INTEGER DEFAULT 0,
             home_red_card INTEGER DEFAULT 0,
             away_yellow_card INTEGER DEFAULT 0,
@@ -25,6 +27,15 @@ def init_db():
             stage TEXT NOT NULL
         )
     ''')
+    
+    try:
+        cursor.execute("ALTER TABLE matches ADD COLUMN home_penalty_score TEXT")
+    except:
+        pass
+    try:
+        cursor.execute("ALTER TABLE matches ADD COLUMN away_penalty_score TEXT")
+    except:
+        pass
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS knockout_matrix (
