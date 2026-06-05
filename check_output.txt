@@ -1,0 +1,5 @@
+row type: <class 'tuple'>
+row[1] type: <class 'str'>
+row[1] value: 捷克(A2)
+row[1] bytes: e68db7e5858b28413229
+decode test: \u6377\u514b(A2)
