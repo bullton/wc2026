@@ -81,9 +81,6 @@
         }
         
         .reset-btn {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
             background: #ef4444;
             color: white;
             border: none;
@@ -94,8 +91,9 @@
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
             transition: all 0.3s;
-            z-index: 100;
         }
+
+        body { padding-bottom: 80px; }
         
         .reset-btn:hover {
             background: #dc2626;
@@ -111,16 +109,6 @@
         }
 
         .fill-btn-container {
-            position: fixed;
-            bottom: 70px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            z-index: 100;
-        }
-
-        .fill-btn {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
             border: none;
@@ -3025,72 +3013,15 @@ btn.disabled = false;
 
         init();
     </script>
-    <div class="fill-buttons" style="position: fixed; bottom: 70px; right: 20px; display: flex; gap: 8px; z-index: 100;">
+    <div class="bottom-bar" style="position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; padding: 12px 20px; display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; z-index: 100;">
         <button class="fill-btn" onclick="fillRound(1)">填第1轮</button>
         <button class="fill-btn" onclick="fillRound(2)">填第2轮</button>
         <button class="fill-btn" onclick="fillRound(3)">填第3轮</button>
         <button class="fill-btn fill-btn-all" onclick="fillAllRounds()">填全部</button>
-        <button class="simulate-btn" onclick="startSimulation()" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);">🔮 推演</button>
+        <button class="simulate-btn" onclick="startSimulation()" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">🔮 推演</button>
+        <button class="reset-btn" id="resetDataBtn" onclick="resetAllData()">🔄 重置数据</button>
     </div>
     <style>
-        .fill-btn {
-            padding: 8px 14px;
-            background: #3b82f6;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        }
-        .fill-btn:hover {
-            background: #2563eb;
-        }
-        .fill-btn-all {
-            background: #10b981;
-        }
-        .fill-btn-all:hover {
-            background: #059669;
-        }
-        .simulate-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            flex-direction: column;
-        }
-        .simulate-overlay.active {
-            display: flex;
-        }
-        .simulate-content {
-            background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
-            border-radius: 16px;
-            padding: 30px 40px;
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .simulate-title {
-            color: #f59e0b;
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-        .simulate-steps {
-            max-height: 300px;
-            overflow-y: auto;
-            text-align: left;
-            margin-bottom: 20px;
-        }
         .simulate-step {
             background: rgba(255,255,255,0.05);
             border-radius: 8px;
@@ -3359,6 +3290,5 @@ btn.disabled = false;
             });
         }
     </script>
-    <button class="reset-btn" id="resetDataBtn" onclick="resetAllData()">🔄 重置数据</button>
 </body>
 </html>
