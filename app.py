@@ -1104,6 +1104,20 @@ def generate_random_score():
     away_goals = random.choices(range(7), weights=weights)[0]
     return home_goals, away_goals
 
+def get_ai_prediction_score(home_team, away_team):
+    result = get_prediction_from_ai(home_team, away_team)
+    prediction = result.get('prediction', '')
+    if prediction:
+        try:
+            parts = prediction.split('-')
+            if len(parts) == 2:
+                home = int(parts[0].strip())
+                away = int(parts[1].strip())
+                return home, away
+        except:
+            pass
+    return None, None
+
 @app.route('/api/fill-round/<int:round_num>', methods=['POST'])
 def fill_round(round_num):
     if round_num not in [1, 2, 3]:
@@ -1372,7 +1386,9 @@ def simulate():
         for match in group_matches:
             match_id = match['id']
             ht, at = match['home_team'], match['away_team']
-            hg, ag = generate_random_score()
+            hg, ag = get_ai_prediction_score(ht, at)
+            if hg is None or ag is None:
+                hg, ag = generate_random_score()
             
             cursor.execute("UPDATE matches SET home_score = ?, away_score = ? WHERE id = ?", (str(hg), str(ag), match_id))
             
@@ -1445,7 +1461,9 @@ def simulate():
     current_winners = {}
     
     def simulate_match(match_id, home_team, away_team):
-        home_goals, away_goals = generate_random_score()
+        home_goals, away_goals = get_ai_prediction_score(home_team, away_team)
+        if home_goals is None or away_goals is None:
+            home_goals, away_goals = generate_random_score()
         
         if home_goals == away_goals:
             home_pen, away_pen = random.randint(1, 5), random.randint(1, 5)
