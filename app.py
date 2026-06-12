@@ -1104,18 +1104,42 @@ def generate_random_score():
     away_goals = random.choices(range(7), weights=weights)[0]
     return home_goals, away_goals
 
+def generate_weighted_score(home_team, away_team):
+    home_rank = FIFA_RANKINGS.get(home_team, 100)
+    away_rank = FIFA_RANKINGS.get(away_team, 100)
+    
+    rank_diff = away_rank - home_rank
+    home_advantage = max(-5, min(5, rank_diff // 20))
+    
+    home_base = 1.5 + home_advantage * 0.1
+    away_base = 1.5 - home_advantage * 0.1
+    
+    home_goals = max(0, min(6, int(random.gauss(home_base, 1.0))))
+    away_goals = max(0, min(6, int(random.gauss(away_base, 0.9))))
+    
+    if home_goals == away_goals:
+        if random.random() < 0.4:
+            home_goals += 1
+        else:
+            away_goals += 1
+    
+    return home_goals, away_goals
+
 def get_ai_prediction_score(home_team, away_team):
-    result = get_prediction_from_ai(home_team, away_team)
-    prediction = result.get('prediction', '')
-    if prediction:
-        try:
-            parts = prediction.split('-')
-            if len(parts) == 2:
-                home = int(parts[0].strip())
-                away = int(parts[1].strip())
-                return home, away
-        except:
-            pass
+    try:
+        result = get_prediction_from_ai(home_team, away_team)
+        prediction = result.get('prediction', '')
+        if prediction:
+            try:
+                parts = prediction.split('-')
+                if len(parts) == 2:
+                    home = int(parts[0].strip())
+                    away = int(parts[1].strip())
+                    return home, away
+            except:
+                pass
+    except:
+        pass
     return None, None
 
 def batch_ai_predict_scores(matches_batch):
@@ -1283,7 +1307,7 @@ def get_prediction_from_ai(home_team, away_team):
 
     try:
         req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method='POST')
-        with urllib.request.urlopen(req, timeout=30) as response:
+        with urllib.request.urlopen(req, timeout=15) as response:
             result = json.loads(response.read().decode('utf-8'))
             content = result['choices'][0]['message']['content']
             # Extract JSON from AI response (may contain thinking tags)
@@ -1392,12 +1416,11 @@ def simulate():
     
     for round_date in sorted(rounds.keys()):
         round_matches = rounds[round_date]
-        predictions = batch_ai_predict_scores(round_matches)
-        pred_dict = {p[0]: (p[1], p[2]) for p in predictions}
         
         for match in round_matches:
             match_id = match['id']
-            hg, ag = pred_dict.get(match_id, generate_random_score())
+            ht, at = match['home_team'], match['away_team']
+            hg, ag = generate_weighted_score(ht, at)
             cursor.execute("UPDATE matches SET home_score = ?, away_score = ? WHERE id = ?", (str(hg), str(ag), match_id))
     
     for group in groups:
@@ -1802,11 +1825,11 @@ def simulate():
                 away_team = current_winners.get(mid, {}).get('winner', '未知')
             elif at and at != '待定':
                 away_team = at
-            
+
             if home_team == '未知' or away_team == '未知':
                 pass
             else:
-                result = simulate_match(match_id, home_team, away_team)
+                result = batch_simulate_matches([(match_id, home_team, away_team)])[0]
                 steps.append({
                     'stage': stage,
                     'match_id': match_id,
@@ -1820,7 +1843,7 @@ def simulate():
                     'loser': result['loser']
                 })
                 current_winners[match_id] = {'winner': result['winner'], 'loser': result['loser']}
-    
+
     cursor.execute("SELECT * FROM matches WHERE stage = ?", ('季军战',))
     third_match = cursor.fetchone()
     if third_match:
@@ -1853,9 +1876,9 @@ def simulate():
             away_team = current_winners.get(mid, {}).get('winner', '未知')
         else:
             away_team = resolve_team(at)
-        
+
         if home_team != '未知' and away_team != '未知':
-            result = simulate_match(third_match_id, home_team, away_team)
+            result = batch_simulate_matches([(third_match_id, home_team, away_team)])[0]
             steps.append({
                 'stage': '季军战',
                 'match_id': third_match_id,
