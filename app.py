@@ -1118,6 +1118,16 @@ def get_ai_prediction_score(home_team, away_team):
             pass
     return None, None
 
+def batch_ai_predict_scores(matches_batch):
+    results = []
+    for match in matches_batch:
+        ht, at = match['home_team'], match['away_team']
+        hg, ag = get_ai_prediction_score(ht, at)
+        if hg is None or ag is None:
+            hg, ag = generate_random_score()
+        results.append((match['id'], hg, ag))
+    return results
+
 @app.route('/api/fill-round/<int:round_num>', methods=['POST'])
 def fill_round(round_num):
     if round_num not in [1, 2, 3]:
@@ -1370,6 +1380,26 @@ def simulate():
     group_standings = {}
     group_match_scores = {}
     
+    cursor.execute("SELECT * FROM matches WHERE group_name != '' AND group_name IS NOT NULL ORDER BY match_date, match_time")
+    all_group_matches = [dict(row) for row in cursor.fetchall()]
+    
+    rounds = {}
+    for m in all_group_matches:
+        date = m['match_date']
+        if date not in rounds:
+            rounds[date] = []
+        rounds[date].append(m)
+    
+    for round_date in sorted(rounds.keys()):
+        round_matches = rounds[round_date]
+        predictions = batch_ai_predict_scores(round_matches)
+        pred_dict = {p[0]: (p[1], p[2]) for p in predictions}
+        
+        for match in round_matches:
+            match_id = match['id']
+            hg, ag = pred_dict.get(match_id, generate_random_score())
+            cursor.execute("UPDATE matches SET home_score = ?, away_score = ? WHERE id = ?", (str(hg), str(ag), match_id))
+    
     for group in groups:
         cursor.execute("SELECT * FROM matches WHERE group_name = ? ORDER BY id", (group,))
         group_matches = [dict(row) for row in cursor.fetchall()]
@@ -1386,11 +1416,8 @@ def simulate():
         for match in group_matches:
             match_id = match['id']
             ht, at = match['home_team'], match['away_team']
-            hg, ag = get_ai_prediction_score(ht, at)
-            if hg is None or ag is None:
-                hg, ag = generate_random_score()
-            
-            cursor.execute("UPDATE matches SET home_score = ?, away_score = ? WHERE id = ?", (str(hg), str(ag), match_id))
+            hg = int(match['home_score']) if match['home_score'] else 0
+            ag = int(match['away_score']) if match['away_score'] else 0
             
             teams[ht]['gf'] += hg
             teams[ht]['ga'] += ag
@@ -1460,38 +1487,42 @@ def simulate():
         })
     current_winners = {}
     
-    def simulate_match(match_id, home_team, away_team):
-        home_goals, away_goals = get_ai_prediction_score(home_team, away_team)
-        if home_goals is None or away_goals is None:
-            home_goals, away_goals = generate_random_score()
-        
-        if home_goals == away_goals:
-            home_pen, away_pen = random.randint(1, 5), random.randint(1, 5)
-            while home_pen == away_pen:
+    def batch_simulate_matches(matches_list):
+        results = []
+        for match_id, home_team, away_team in matches_list:
+            home_goals, away_goals = get_ai_prediction_score(home_team, away_team)
+            if home_goals is None or away_goals is None:
+                home_goals, away_goals = generate_random_score()
+            
+            if home_goals == away_goals:
                 home_pen, away_pen = random.randint(1, 5), random.randint(1, 5)
-        else:
-            home_pen, away_pen = None, None
-        
-        winner = home_team if home_goals > away_goals else away_team
-        loser = away_team if home_goals > away_goals else home_team
-        
-        if home_pen is not None:
-            cursor.execute("UPDATE matches SET home_score = ?, away_score = ?, home_penalty_score = ?, away_penalty_score = ? WHERE id = ?", 
-                          (str(home_goals), str(away_goals), str(home_pen), str(away_pen), match_id))
-        else:
-            cursor.execute("UPDATE matches SET home_score = ?, away_score = ? WHERE id = ?", 
-                          (str(home_goals), str(away_goals), match_id))
-        
-        return {
-            'home_team': home_team,
-            'away_team': away_team,
-            'home_score': home_goals,
-            'away_score': away_goals,
-            'home_penalty': home_pen,
-            'away_penalty': away_pen,
-            'winner': winner,
-            'loser': loser
-        }
+                while home_pen == away_pen:
+                    home_pen, away_pen = random.randint(1, 5), random.randint(1, 5)
+            else:
+                home_pen, away_pen = None, None
+            
+            winner = home_team if home_goals > away_goals else away_team
+            loser = away_team if home_goals > away_goals else home_team
+            
+            if home_pen is not None:
+                cursor.execute("UPDATE matches SET home_score = ?, away_score = ?, home_penalty_score = ?, away_penalty_score = ? WHERE id = ?",
+                              (str(home_goals), str(away_goals), str(home_pen), str(away_pen), match_id))
+            else:
+                cursor.execute("UPDATE matches SET home_score = ?, away_score = ? WHERE id = ?",
+                              (str(home_goals), str(away_goals), match_id))
+            
+            results.append({
+                'match_id': match_id,
+                'home_team': home_team,
+                'away_team': away_team,
+                'home_score': home_goals,
+                'away_score': away_goals,
+                'home_penalty': home_pen,
+                'away_penalty': away_pen,
+                'winner': winner,
+                'loser': loser
+            })
+        return results
     
     def resolve_team(team_str):
         if not team_str:
@@ -1529,29 +1560,30 @@ def simulate():
         cursor.execute("SELECT * FROM matches WHERE stage = ? ORDER BY id", ('1/16决赛',))
         all_16 = [dict(row) for row in cursor.fetchall()]
     
+    batch_16 = []
     for match in all_16:
         match_id = match['id']
         home_team = resolve_team(match['home_team'])
         away_team = resolve_team(match['away_team'])
-        
-        if home_team == '未知' or away_team == '未知':
-            continue
-        
-        cursor.execute('UPDATE matches SET home_team = ?, away_team = ? WHERE id = ?', (home_team, away_team, match_id))
-        
-        result = simulate_match(match_id, home_team, away_team)
-        
-        next_match_mapping = {
-            73: ('89', 'home_team'), 74: ('90', 'home_team'), 75: ('89', 'away_team'), 76: ('91', 'home_team'),
-            77: ('90', 'away_team'), 78: ('91', 'away_team'), 79: ('92', 'home_team'), 80: ('92', 'away_team'),
-            81: ('94', 'home_team'), 82: ('94', 'away_team'), 83: ('93', 'home_team'), 84: ('93', 'away_team'),
-            85: ('96', 'home_team'), 86: ('95', 'home_team'), 87: ('96', 'away_team'), 88: ('95', 'away_team')
-        }
+        if home_team != '未知' and away_team != '未知':
+            cursor.execute('UPDATE matches SET home_team = ?, away_team = ? WHERE id = ?', (home_team, away_team, match_id))
+            batch_16.append((match_id, home_team, away_team))
+    
+    results_16 = batch_simulate_matches(batch_16)
+    
+    next_match_mapping = {
+        73: ('89', 'home_team'), 74: ('90', 'home_team'), 75: ('89', 'away_team'), 76: ('91', 'home_team'),
+        77: ('90', 'away_team'), 78: ('91', 'away_team'), 79: ('92', 'home_team'), 80: ('92', 'away_team'),
+        81: ('94', 'home_team'), 82: ('94', 'away_team'), 83: ('93', 'home_team'), 84: ('93', 'away_team'),
+        85: ('96', 'home_team'), 86: ('95', 'home_team'), 87: ('96', 'away_team'), 88: ('95', 'away_team')
+    }
+    
+    for result in results_16:
+        match_id = result['match_id']
         if match_id in next_match_mapping:
             next_id_str, slot = next_match_mapping[match_id]
             next_id = int(next_id_str)
-            winner_team_with_pos = f"{result['winner']}"
-            cursor.execute('UPDATE matches SET {} = ? WHERE id = ?'.format(slot), (winner_team_with_pos, next_id))
+            cursor.execute('UPDATE matches SET {} = ? WHERE id = ?'.format(slot), (result['winner'], next_id))
         
         steps.append({
             'stage': '1/16决赛',
@@ -1571,6 +1603,8 @@ def simulate():
         if stage == '1/8决赛':
             cursor.execute("SELECT * FROM matches WHERE stage = ? ORDER BY id", (stage,))
             matches = [dict(row) for row in cursor.fetchall()]
+            
+            batch_8 = []
             for match in matches:
                 match_id = match['id']
                 ht = match['home_team']
@@ -1594,15 +1628,18 @@ def simulate():
                 else:
                     away_team = resolve_team(at)
                 
-                if home_team == '未知' or away_team == '未知':
-                    continue
-                
-                result = simulate_match(match_id, home_team, away_team)
-                
-                next_match_mapping_8 = {
-                    89: ('97', 'home_team'), 90: ('97', 'away_team'), 91: ('99', 'home_team'), 92: ('99', 'away_team'),
-                    93: ('98', 'home_team'), 94: ('98', 'away_team'), 95: ('100', 'home_team'), 96: ('100', 'away_team')
-                }
+                if home_team != '未知' and away_team != '未知':
+                    batch_8.append((match_id, home_team, away_team))
+            
+            results_8 = batch_simulate_matches(batch_8)
+            
+            next_match_mapping_8 = {
+                89: ('97', 'home_team'), 90: ('97', 'away_team'), 91: ('99', 'home_team'), 92: ('99', 'away_team'),
+                93: ('98', 'home_team'), 94: ('98', 'away_team'), 95: ('100', 'home_team'), 96: ('100', 'away_team')
+            }
+            
+            for result in results_8:
+                match_id = result['match_id']
                 if match_id in next_match_mapping_8:
                     next_id_str, slot = next_match_mapping_8[match_id]
                     next_id = int(next_id_str)
@@ -1624,6 +1661,8 @@ def simulate():
         elif stage == '1/4决赛':
             cursor.execute("SELECT * FROM matches WHERE stage = ? ORDER BY id", (stage,))
             matches = [dict(row) for row in cursor.fetchall()]
+            
+            batch_4 = []
             for match in matches:
                 match_id = match['id']
                 ht = match['home_team']
@@ -1647,14 +1686,17 @@ def simulate():
                 else:
                     away_team = resolve_team(at)
                 
-                if home_team == '未知' or away_team == '未知':
-                    continue
-                
-                result = simulate_match(match_id, home_team, away_team)
-                
-                next_match_mapping_4 = {
-                    97: ('101', 'home_team'), 98: ('102', 'home_team'), 99: ('102', 'away_team'), 100: ('101', 'away_team')
-                }
+                if home_team != '未知' and away_team != '未知':
+                    batch_4.append((match_id, home_team, away_team))
+            
+            results_4 = batch_simulate_matches(batch_4)
+            
+            next_match_mapping_4 = {
+                97: ('101', 'home_team'), 98: ('102', 'home_team'), 99: ('102', 'away_team'), 100: ('101', 'away_team')
+            }
+            
+            for result in results_4:
+                match_id = result['match_id']
                 if match_id in next_match_mapping_4:
                     next_id_str, slot = next_match_mapping_4[match_id]
                     next_id = int(next_id_str)
@@ -1675,10 +1717,11 @@ def simulate():
                 current_winners[match_id] = {'winner': result['winner'], 'loser': result['loser']}
         elif stage == '半决赛':
             cursor.execute("SELECT * FROM matches WHERE stage = ? ORDER BY id", (stage,))
-            for match in cursor.fetchall():
-                match = dict(match)
+            matches = [dict(row) for row in cursor.fetchall()]
+            
+            batch_sf = []
+            for match in matches:
                 match_id = match['id']
-                
                 ht = match['home_team']
                 at = match['away_team']
                 
@@ -1703,14 +1746,17 @@ def simulate():
                 elif at and at != '待定':
                     away_team = at
                 
-                if home_team == '未知' or away_team == '未知':
-                    continue
-                
-                result = simulate_match(match_id, home_team, away_team)
-                
-                next_match_mapping_semi = {
-                    101: ('104', 'home_team'), 102: ('104', 'away_team')
-                }
+                if home_team != '未知' and away_team != '未知':
+                    batch_sf.append((match_id, home_team, away_team))
+            
+            results_sf = batch_simulate_matches(batch_sf)
+            
+            next_match_mapping_semi = {
+                101: ('104', 'home_team'), 102: ('104', 'away_team')
+            }
+            
+            for result in results_sf:
+                match_id = result['match_id']
                 if match_id in next_match_mapping_semi:
                     next_id_str, slot = next_match_mapping_semi[match_id]
                     next_id = int(next_id_str)
