@@ -620,17 +620,67 @@ def has_group_matches_played(group_name, matches):
     group_matches = [m for m in matches if m['group_name'] == group_name]
     return any(m['home_score'] != '' and m['away_score'] != '' for m in group_matches)
 
+def get_third_place_slot_groups():
+    return {
+        'A/B/C/D/F3': ['A', 'B', 'C', 'D', 'F'],
+        'C/D/F/G/H3': ['C', 'D', 'F', 'G', 'H'],
+        'C/E/F/H/I3': ['C', 'E', 'F', 'H', 'I'],
+        'E/H/I/J/K3': ['E', 'H', 'I', 'J', 'K'],
+        'A/E/H/I/J3': ['A', 'E', 'H', 'I', 'J'],
+        'B/E/F/I/J3': ['B', 'E', 'F', 'I', 'J'],
+        'E/F/G/I/J3': ['E', 'F', 'G', 'I', 'J'],
+        'D/E/I/J/L3': ['D', 'E', 'I', 'J', 'L']
+    }
+
+def assign_third_place_teams(matches):
+    third_place_teams = calculate_all_third_place_teams(matches)
+    if not third_place_teams:
+        return {}
+
+    slot_groups = get_third_place_slot_groups()
+    third_by_group = {t['group']: t for t in third_place_teams}
+    third_ranks = {t['group']: i for i, t in enumerate(third_place_teams)}
+    third_slots = list(slot_groups.keys())
+
+    def solve_backtrack(assignment, used_groups):
+        if len(assignment) == len(third_slots):
+            return assignment
+        slot = third_slots[len(assignment)]
+        eligible = slot_groups[slot]
+        available = [g for g in eligible if g in third_by_group and g not in used_groups]
+        if not available:
+            return None
+        available.sort(key=lambda g: third_ranks[g])
+        for g in available:
+            new_assignment = assignment.copy()
+            new_assignment[slot] = third_by_group[g]
+            new_used = used_groups.copy()
+            new_used.add(g)
+            result = solve_backtrack(new_assignment, new_used)
+            if result:
+                return result
+        return None
+
+    optimal_assignment = solve_backtrack({}, set())
+    if not optimal_assignment:
+        return {}
+
+    slot_to_team = {}
+    for slot, team_data in optimal_assignment.items():
+        slot_to_team[slot] = f"{team_data['team']}({slot})"
+    return slot_to_team
+
 def update_knockout_matches(matches):
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     knockout_mapping = {
         73: ('A', 2), 74: ('C', 1), 75: ('E', 1), 76: ('F', 1),
         77: ('E', 2), 78: ('I', 1), 79: ('A', 1), 80: ('L', 1),
         81: ('G', 1), 82: ('D', 1), 83: ('H', 1), 84: ('K', 2),
         85: ('B', 1), 86: ('D', 2), 87: ('J', 1), 88: ('K', 1)
     }
-    
+
     for match_id, (group, position) in knockout_mapping.items():
         if is_group_completed(group, matches):
             standings = calculate_group_standings(group, matches)
@@ -643,7 +693,7 @@ def update_knockout_matches(matches):
         73: ('B', 2), 74: ('F', 2), 76: ('C', 2), 77: ('I', 2),
         83: ('J', 2), 84: ('L', 2), 87: ('H', 2), 86: ('G', 2)
     }
-    
+
     for match_id, (group, position) in second_place_mapping.items():
         if is_group_completed(group, matches):
             standings = calculate_group_standings(group, matches)
@@ -652,68 +702,30 @@ def update_knockout_matches(matches):
                 team_with_pos = f"{team}({group}{position})"
                 cursor.execute('UPDATE matches SET away_team = ? WHERE id = ?', (team_with_pos, match_id))
 
-        third_place_teams = calculate_all_third_place_teams(matches)
-        if third_place_teams:
-            slot_groups = {
-                'A/B/C/D/F3': ['A', 'B', 'C', 'D', 'F'],
-                'C/D/F/G/H3': ['C', 'D', 'F', 'G', 'H'],
-                'C/E/F/H/I3': ['C', 'E', 'F', 'H', 'I'],
-                'E/H/I/J/K3': ['E', 'H', 'I', 'J', 'K'],
-                'A/E/H/I/J3': ['A', 'E', 'H', 'I', 'J'],
-                'B/E/F/I/J3': ['B', 'E', 'F', 'I', 'J'],
-                'E/F/G/I/J3': ['E', 'F', 'G', 'I', 'J'],
-                'D/E/I/J/L3': ['D', 'E', 'I', 'J', 'L']
-            }
-
-            third_by_group = {t['group']: t for t in third_place_teams}
-            third_ranks = {t['group']: i for i, t in enumerate(third_place_teams)}
-            third_slots = list(slot_groups.keys())
-
-            def solve_backtrack(assignment, used_groups):
-                if len(assignment) == len(third_slots):
-                    return assignment
-                slot = third_slots[len(assignment)]
-                eligible = slot_groups[slot]
-                available = [g for g in eligible if g in third_by_group and g not in used_groups]
-                if not available:
-                    return None
-                available.sort(key=lambda g: third_ranks[g])
-                for g in available:
-                    new_assignment = assignment.copy()
-                    new_assignment[slot] = third_by_group[g]
-                    new_used = used_groups.copy()
-                    new_used.add(g)
-                    result = solve_backtrack(new_assignment, used_groups)
-                    if result:
-                        return result
-                return None
-
-            optimal_assignment = solve_backtrack({}, set())
-
-            if optimal_assignment:
-                slot_to_team = {}
-                for slot, team_data in optimal_assignment.items():
-                    slot_to_team[slot] = f"{team_data['team']}({slot})"
-
-                for match in matches:
-                    if match['stage'] != '1/16决赛':
-                        continue
-                    home = match['home_team']
-                    away = match['away_team']
-                    third_slots_list = list(slot_groups.keys())
-                    current_slot = None
-                    if home in third_slots_list:
-                        current_slot = home
-                    elif away in third_slots_list:
-                        current_slot = away
-                    else:
-                        continue
-                    if current_slot in slot_to_team:
-                        team_name = slot_to_team[current_slot]
-                        if home == current_slot:
-                            cursor.execute('UPDATE matches SET home_team = ? WHERE id = ?', (team_name, match['id']))
-                        else:
-                            cursor.execute('UPDATE matches SET away_team = ? WHERE id = ?', (team_name, match['id']))
+    slot_to_team = assign_third_place_teams(matches)
+    if slot_to_team:
+        for match in matches:
+            if match['stage'] != '1/16决赛':
+                continue
+            home = match['home_team']
+            away = match['away_team']
+            third_slots_list = list(slot_to_team.keys())
+            current_slot = None
+            for slot in third_slots_list:
+                if home == slot or (home and home.endswith(f'({slot})')):
+                    current_slot = slot
+                    break
+                if away == slot or (away and away.endswith(f'({slot})')):
+                    current_slot = slot
+                    break
+            if not current_slot:
+                continue
+            if current_slot in slot_to_team:
+                team_name = slot_to_team[current_slot]
+                if home == current_slot or (home and home.endswith(f'({current_slot})')):
+                    cursor.execute('UPDATE matches SET home_team = ? WHERE id = ?', (team_name, match['id']))
+                else:
+                    cursor.execute('UPDATE matches SET away_team = ? WHERE id = ?', (team_name, match['id']))
 
     conn.commit()
     conn.close()
@@ -1488,7 +1500,39 @@ def simulate():
     third_place_teams = [t for t in all_teams if t['rank'] == 3]
     third_place_teams.sort(key=lambda x: (-x['team']['points'], -x['team']['gd'], -x['team']['gf']))
     qualified_3rd = [t['team']['name'] for t in third_place_teams[:8]]
-    
+
+    sim_slot_groups = get_third_place_slot_groups()
+    sim_qualified_3rd_set = set(qualified_3rd)
+    sim_third_group_to_team = {}
+    for t in all_teams:
+        if t['rank'] == 3 and t['team']['name'] in sim_qualified_3rd_set:
+            sim_third_group_to_team[t['group']] = t['team']['name']
+    sim_sorted_third_groups = [t['group'] for t in third_place_teams[:8]]
+    sim_third_slots = list(sim_slot_groups.keys())
+    sim_third_slot_assignments = {}
+
+    def sim_solve_backtrack(assignment, used_groups):
+        if len(assignment) == len(sim_third_slots):
+            return assignment
+        slot = sim_third_slots[len(assignment)]
+        eligible = sim_slot_groups[slot]
+        available = [g for g in eligible if g in sim_third_group_to_team and g not in used_groups]
+        if not available:
+            return None
+        available.sort(key=lambda g: sim_sorted_third_groups.index(g) if g in sim_sorted_third_groups else 999)
+        for g in available:
+            new_assignment = assignment.copy()
+            new_assignment[slot] = sim_third_group_to_team[g]
+            new_used = used_groups.copy()
+            new_used.add(g)
+            result = sim_solve_backtrack(new_assignment, new_used)
+            if result:
+                return result
+        return None
+
+    if sim_third_group_to_team:
+        sim_third_slot_assignments = sim_solve_backtrack({}, set()) or {}
+
     knockout_teams = {}
     for t in all_teams:
         if t['rank'] == 1:
@@ -1560,16 +1604,10 @@ def simulate():
         if team_str in knockout_teams:
             return knockout_teams[team_str]
         if '/' in team_str and team_str.endswith('3'):
-            parts = team_str.split('/')
-            for p in parts:
-                if p.endswith('3'):
-                    g = p.replace('3', '')
-                    if g in group_standings:
-                        s = group_standings[g]
-                        if len(s) >= 3:
-                            return s[2]['name']
-            for t in qualified_3rd:
-                return t
+            if team_str in sim_third_slot_assignments:
+                return sim_third_slot_assignments[team_str]
+            for g, team_name in sim_third_group_to_team.items():
+                return team_name
         return team_str
     
     cursor.execute("SELECT * FROM matches WHERE stage = ? AND home_team NOT LIKE '%胜者%' AND home_team NOT LIKE '%负者%' AND home_team NOT LIKE '%第%' ORDER BY id", ('1/16决赛',))
@@ -1951,16 +1989,10 @@ def simulate():
         if team_str in knockout_teams:
             return knockout_teams[team_str]
         if '/' in team_str and team_str.endswith('3'):
-            parts = team_str.split('/')
-            for p in parts:
-                if p.endswith('3'):
-                    g = p.replace('3', '')
-                    if g in group_standings:
-                        s = group_standings[g]
-                        if len(s) >= 3:
-                            return s[2]['name']
-            for t in qualified_3rd:
-                return t
+            if team_str in sim_third_slot_assignments:
+                return sim_third_slot_assignments[team_str]
+            for g, team_name in sim_third_group_to_team.items():
+                return team_name
         return team_str
     
     cursor.execute("SELECT * FROM matches WHERE stage = ? AND home_team NOT LIKE '%胜者%' AND home_team NOT LIKE '%负者%' AND home_team NOT LIKE '%第%' ORDER BY id", ('1/16决赛',))
