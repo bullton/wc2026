@@ -633,9 +633,15 @@ def get_third_place_slot_groups():
         'D/E/I/J/L3': ['D', 'E', 'I', 'J', 'L']
     }
 
-MATCH_TO_GROUP_WINNER = {
-    79: 'A', 85: 'B', 82: 'D', 75: 'E',
-    81: 'G', 78: 'I', 88: 'K', 80: 'L'
+MATCH_TO_SLOT = {
+    79: 'C/E/F/H/I3',
+    85: 'E/F/G/I/J3',
+    82: 'B/E/F/I/J3',
+    75: 'A/B/C/D/F3',
+    81: 'A/E/H/I/J3',
+    78: 'C/D/F/G/H3',
+    88: 'D/E/I/J/L3',
+    80: 'E/H/I/J/K3'
 }
 
 def assign_third_place_teams(matches):
@@ -643,7 +649,6 @@ def assign_third_place_teams(matches):
     if not third_place_teams:
         return {}
 
-    slot_groups = get_third_place_slot_groups()
     third_by_group = {t['group']: t for t in third_place_teams}
 
     qualified_groups = frozenset(t['group'] for t in third_place_teams)
@@ -651,23 +656,16 @@ def assign_third_place_teams(matches):
     if not bracket_pattern:
         return {}
 
-    match_to_group = {mid: grp for mid, grp in bracket_pattern.items()}
-
     slot_to_team = {}
-    for slot, eligible in slot_groups.items():
-        for match_id, opponent_group in match_to_group.items():
-            if opponent_group in eligible and opponent_group in third_by_group:
-                if slot in slot_to_team:
-                    continue
-                team_name = third_by_group[opponent_group]['team']
-                slot_to_team[slot] = f"{team_name}({slot})"
-                break
-        if slot not in slot_to_team:
-            for g in eligible:
-                if g in third_by_group:
-                    team_name = third_by_group[g]['team']
-                    slot_to_team[slot] = f"{team_name}({slot})"
-                    break
+    for match_id, opponent_group in bracket_pattern.items():
+        if match_id not in MATCH_TO_SLOT:
+            continue
+        if opponent_group not in third_by_group:
+            continue
+        slot = MATCH_TO_SLOT[match_id]
+        team_name = third_by_group[opponent_group]['team']
+        slot_to_team[slot] = f"{team_name}({slot})"
+
     return slot_to_team
 
 def update_knockout_matches(matches):
