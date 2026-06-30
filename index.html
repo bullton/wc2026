@@ -1412,6 +1412,15 @@ tr.qualified-locked {
             return false;
         }
 
+        function isKnockoutTeamResolved(teamName) {
+            if (!teamName) return false;
+            if (teamName === '待定') return false;
+            if (teamName.includes('胜者') || teamName.includes('负者')) return false;
+            if (teamName.match(/\([A-Z][1-3](?:\/[A-Z]+)*\)$/)) return true;
+            if (teamName.match(/^[\u4e00-\u9fa5a-zA-Z]+[\u4e00-\u9fa5a-zA-Z]/)) return true;
+            return false;
+        }
+
         function getDeterminedTeams() {
             const set = new Set();
             if (allStandings) {
@@ -2019,9 +2028,11 @@ matches.forEach(match => {
             
             const homeWin = winner === 'home' ? 'winner' : (winner === 'away' ? 'loser' : '');
             const awayWin = winner === 'away' ? 'winner' : (winner === 'home' ? 'loser' : '');
-            
-            const homeIsPlaceholder = !match.home_team || match.home_team === '待定' || !isTeamDetermined(match.home_team);
-            const awayIsPlaceholder = !match.away_team || match.away_team === '待定' || !isTeamDetermined(match.away_team);
+
+            const homeResolved = isKnockoutTeamResolved(match.home_team);
+            const awayResolved = isKnockoutTeamResolved(match.away_team);
+            const homeIsPlaceholder = !homeResolved && (!match.home_team || match.home_team === '待定' || !isTeamDetermined(match.home_team));
+            const awayIsPlaceholder = !awayResolved && (!match.away_team || match.away_team === '待定' || !isTeamDetermined(match.away_team));
             const isR16 = R16_PLACEHOLDERS[matchId];
             const homeName = homeIsPlaceholder 
                 ? (isR16 ? getR16Placeholder(matchId, 'home') : '待定')
