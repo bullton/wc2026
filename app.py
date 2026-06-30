@@ -5,6 +5,7 @@ import os
 import json
 import random
 from database import init_db
+from combinations import COMBINATIONS as FIFA_COMBINATIONS
 
 app = Flask(__name__)
 CORS(app)
@@ -632,6 +633,11 @@ def get_third_place_slot_groups():
         'D/E/I/J/L3': ['D', 'E', 'I', 'J', 'L']
     }
 
+MATCH_TO_GROUP_WINNER = {
+    79: 'A', 85: 'B', 82: 'D', 75: 'E',
+    81: 'G', 78: 'I', 88: 'K', 80: 'L'
+}
+
 def assign_third_place_teams(matches):
     third_place_teams = calculate_all_third_place_teams(matches)
     if not third_place_teams:
@@ -639,35 +645,29 @@ def assign_third_place_teams(matches):
 
     slot_groups = get_third_place_slot_groups()
     third_by_group = {t['group']: t for t in third_place_teams}
-    third_ranks = {t['group']: i for i, t in enumerate(third_place_teams)}
-    third_slots = list(slot_groups.keys())
 
-    def solve_backtrack(assignment, used_groups):
-        if len(assignment) == len(third_slots):
-            return assignment
-        slot = third_slots[len(assignment)]
-        eligible = slot_groups[slot]
-        available = [g for g in eligible if g in third_by_group and g not in used_groups]
-        if not available:
-            return None
-        available.sort(key=lambda g: third_ranks[g])
-        for g in available:
-            new_assignment = assignment.copy()
-            new_assignment[slot] = third_by_group[g]
-            new_used = used_groups.copy()
-            new_used.add(g)
-            result = solve_backtrack(new_assignment, new_used)
-            if result:
-                return result
-        return None
-
-    optimal_assignment = solve_backtrack({}, set())
-    if not optimal_assignment:
+    qualified_groups = frozenset(t['group'] for t in third_place_teams)
+    bracket_pattern = FIFA_COMBINATIONS.get(qualified_groups)
+    if not bracket_pattern:
         return {}
 
+    match_to_group = {mid: grp for mid, grp in bracket_pattern.items()}
+
     slot_to_team = {}
-    for slot, team_data in optimal_assignment.items():
-        slot_to_team[slot] = f"{team_data['team']}({slot})"
+    for slot, eligible in slot_groups.items():
+        for match_id, opponent_group in match_to_group.items():
+            if opponent_group in eligible and opponent_group in third_by_group:
+                if slot in slot_to_team:
+                    continue
+                team_name = third_by_group[opponent_group]['team']
+                slot_to_team[slot] = f"{team_name}({slot})"
+                break
+        if slot not in slot_to_team:
+            for g in eligible:
+                if g in third_by_group:
+                    team_name = third_by_group[g]['team']
+                    slot_to_team[slot] = f"{team_name}({slot})"
+                    break
     return slot_to_team
 
 def update_knockout_matches(matches):
@@ -1507,31 +1507,22 @@ def simulate():
     for t in all_teams:
         if t['rank'] == 3 and t['team']['name'] in sim_qualified_3rd_set:
             sim_third_group_to_team[t['group']] = t['team']['name']
-    sim_sorted_third_groups = [t['group'] for t in third_place_teams[:8]]
-    sim_third_slots = list(sim_slot_groups.keys())
+
+    sim_qualified_groups = frozenset(sim_third_group_to_team.keys())
+    sim_bracket = FIFA_COMBINATIONS.get(sim_qualified_groups, {})
     sim_third_slot_assignments = {}
-
-    def sim_solve_backtrack(assignment, used_groups):
-        if len(assignment) == len(sim_third_slots):
-            return assignment
-        slot = sim_third_slots[len(assignment)]
-        eligible = sim_slot_groups[slot]
-        available = [g for g in eligible if g in sim_third_group_to_team and g not in used_groups]
-        if not available:
-            return None
-        available.sort(key=lambda g: sim_sorted_third_groups.index(g) if g in sim_sorted_third_groups else 999)
-        for g in available:
-            new_assignment = assignment.copy()
-            new_assignment[slot] = sim_third_group_to_team[g]
-            new_used = used_groups.copy()
-            new_used.add(g)
-            result = sim_solve_backtrack(new_assignment, new_used)
-            if result:
-                return result
-        return None
-
-    if sim_third_group_to_team:
-        sim_third_slot_assignments = sim_solve_backtrack({}, set()) or {}
+    if sim_bracket:
+        for slot, eligible in sim_slot_groups.items():
+            for match_id, opponent_group in sim_bracket.items():
+                if opponent_group in eligible and opponent_group in sim_third_group_to_team:
+                    if slot not in sim_third_slot_assignments:
+                        sim_third_slot_assignments[slot] = sim_third_group_to_team[opponent_group]
+                    break
+            if slot not in sim_third_slot_assignments:
+                for g in eligible:
+                    if g in sim_third_group_to_team:
+                        sim_third_slot_assignments[slot] = sim_third_group_to_team[g]
+                        break
 
     knockout_teams = {}
     for t in all_teams:
