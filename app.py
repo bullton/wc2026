@@ -673,10 +673,10 @@ def update_knockout_matches(matches):
     cursor = conn.cursor()
 
     knockout_mapping = {
-        73: ('A', 2), 74: ('C', 1), 75: ('E', 1), 76: ('F', 1),
-        77: ('E', 2), 78: ('I', 1), 79: ('A', 1), 80: ('L', 1),
-        81: ('G', 1), 82: ('D', 1), 83: ('H', 1), 84: ('K', 2),
-        85: ('B', 1), 86: ('D', 2), 87: ('J', 1), 88: ('K', 1)
+        73: ('A', 2), 74: ('E', 1), 75: ('F', 1), 76: ('C', 1),
+        77: ('I', 1), 78: ('E', 2), 79: ('A', 1), 80: ('L', 1),
+        81: ('D', 1), 82: ('G', 1), 83: ('K', 2), 84: ('H', 1),
+        85: ('B', 1), 86: ('J', 1), 87: ('K', 1), 88: ('D', 2)
     }
 
     for match_id, (group, position) in knockout_mapping.items():
@@ -688,8 +688,8 @@ def update_knockout_matches(matches):
                 cursor.execute('UPDATE matches SET home_team = ? WHERE id = ?', (team_with_pos, match_id))
 
     second_place_mapping = {
-        73: ('B', 2), 74: ('F', 2), 76: ('C', 2), 77: ('I', 2),
-        83: ('J', 2), 84: ('L', 2), 87: ('H', 2), 86: ('G', 2)
+        73: ('B', 2), 75: ('C', 2), 76: ('F', 2), 78: ('I', 2),
+        83: ('L', 2), 84: ('J', 2), 86: ('H', 2), 88: ('G', 2)
     }
 
     for match_id, (group, position) in second_place_mapping.items():
@@ -795,8 +795,8 @@ def apply_knockout_winners():
 
     stage_mapping = {
         '1/16决赛': {
-            73: (89, 'home'), 74: (90, 'home'), 75: (89, 'away'), 76: (91, 'home'),
-            77: (90, 'away'), 78: (91, 'away'), 79: (92, 'home'), 80: (92, 'away'),
+            73: (90, 'home'), 74: (89, 'home'), 75: (90, 'away'), 76: (91, 'home'),
+            77: (89, 'away'), 78: (91, 'away'), 79: (92, 'home'), 80: (92, 'away'),
             81: (94, 'home'), 82: (94, 'away'), 83: (93, 'home'), 84: (93, 'away'),
             85: (96, 'home'), 86: (95, 'home'), 87: (96, 'away'), 88: (95, 'away')
         },
@@ -975,8 +975,8 @@ def get_groups():
 @app.route('/api/refresh-knockout', methods=['POST'])
 def refresh_knockout():
     later_placeholders = {
-        89: ('73胜者', '75胜者'),
-        90: ('74胜者', '77胜者'),
+        89: ('74胜者', '77胜者'),
+        90: ('73胜者', '75胜者'),
         91: ('76胜者', '78胜者'),
         92: ('79胜者', '80胜者'),
         93: ('83胜者', '84胜者'),
@@ -1077,16 +1077,16 @@ def reset_test_data():
     ''')
     
     knockout_teams = [
-        (73, 'A2', 'B2'), (74, 'C1', 'F2'), (75, 'E1', 'A/B/C/D/F3'), (76, 'F1', 'C2'),
-        (77, 'E2', 'I2'), (78, 'I1', 'C/D/F/G/H3'), (79, 'A1', 'C/E/F/H/I3'), (80, 'L1', 'E/H/I/J/K3'),
-        (81, 'G1', 'A/E/H/I/J3'), (82, 'D1', 'B/E/F/I/J3'), (83, 'H1', 'J2'), (84, 'K2', 'L2'),
-        (85, 'B1', 'E/F/G/I/J3'), (86, 'D2', 'G2'), (87, 'J1', 'H2'), (88, 'K1', 'D/E/I/J/L3')
+        (73, 'A2', 'B2'), (74, 'E1', 'A/B/C/D/F3'), (75, 'F1', 'C2'), (76, 'C1', 'F2'),
+        (77, 'I1', 'C/D/F/G/H3'), (78, 'E2', 'I2'), (79, 'A1', 'C/E/F/H/I3'), (80, 'L1', 'E/H/I/J/K3'),
+        (81, 'D1', 'B/E/F/I/J3'), (82, 'G1', 'A/E/H/I/J3'), (83, 'K2', 'L2'), (84, 'H1', 'J2'),
+        (85, 'B1', 'E/F/G/I/J3'), (86, 'J1', 'H2'), (87, 'K1', 'D/E/I/J/L3'), (88, 'D2', 'G2')
     ]
     for mid, home, away in knockout_teams:
         cursor.execute('UPDATE matches SET home_team = ?, away_team = ? WHERE id = ?', (home, away, mid))
-    
+
     later_placeholders = {
-        89: ('73胜者', '75胜者'), 90: ('74胜者', '77胜者'),
+        89: ('74胜者', '77胜者'), 90: ('73胜者', '75胜者'),
         91: ('76胜者', '78胜者'), 92: ('79胜者', '80胜者'),
         93: ('83胜者', '84胜者'), 94: ('81胜者', '82胜者'),
         95: ('86胜者', '88胜者'), 96: ('85胜者', '87胜者'),
@@ -1622,8 +1622,8 @@ def simulate():
     results_16 = batch_simulate_matches(batch_16)
     
     next_match_mapping = {
-        73: ('89', 'home_team'), 74: ('90', 'home_team'), 75: ('89', 'away_team'), 76: ('91', 'home_team'),
-        77: ('90', 'away_team'), 78: ('91', 'away_team'), 79: ('92', 'home_team'), 80: ('92', 'away_team'),
+        73: ('90', 'home_team'), 74: ('89', 'home_team'), 75: ('90', 'away_team'), 76: ('91', 'home_team'),
+        77: ('89', 'away_team'), 78: ('91', 'away_team'), 79: ('92', 'home_team'), 80: ('92', 'away_team'),
         81: ('94', 'home_team'), 82: ('94', 'away_team'), 83: ('93', 'home_team'), 84: ('93', 'away_team'),
         85: ('96', 'home_team'), 86: ('95', 'home_team'), 87: ('96', 'away_team'), 88: ('95', 'away_team')
     }
