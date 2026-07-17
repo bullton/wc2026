@@ -6,6 +6,14 @@ import json
 import random
 from database import init_db
 from combinations import COMBINATIONS as FIFA_COMBINATIONS
+from bracket import (
+    OFFICIAL_R32_BRACKET,
+    slot_string_for_match,
+    slot_string_for_pool,
+    pool_groups_for_slot,
+    match_id_to_slot,
+    slot_to_pool_groups,
+)
 
 app = Flask(__name__)
 CORS(app)
@@ -621,112 +629,80 @@ def has_group_matches_played(group_name, matches):
     group_matches = [m for m in matches if m['group_name'] == group_name]
     return any(m['home_score'] != '' and m['away_score'] != '' for m in group_matches)
 
-def get_third_place_slot_groups():
-    return {
-        'A/B/C/D/F3': ['A', 'B', 'C', 'D', 'F'],
-        'C/D/F/G/H3': ['C', 'D', 'F', 'G', 'H'],
-        'C/E/F/H/I3': ['C', 'E', 'F', 'H', 'I'],
-        'E/H/I/J/K3': ['E', 'H', 'I', 'J', 'K'],
-        'A/E/H/I/J3': ['A', 'E', 'H', 'I', 'J'],
-        'B/E/F/I/J3': ['B', 'E', 'F', 'I', 'J'],
-        'E/F/G/I/J3': ['E', 'F', 'G', 'I', 'J'],
-        'D/E/I/J/L3': ['D', 'E', 'I', 'J', 'L']
-    }
 
-MATCH_TO_SLOT = {
-    79: 'C/E/F/H/I3',
-    85: 'E/F/G/I/J3',
-    82: 'B/E/F/I/J3',
-    75: 'A/B/C/D/F3',
-    81: 'A/E/H/I/J3',
-    78: 'C/D/F/G/H3',
-    88: 'D/E/I/J/L3',
-    80: 'E/H/I/J/K3'
-}
+def _resolve_source_team(source, group_standings, third_place_team_by_group, match_id=None):
+    """Resolve a bracket source tuple to a (team_name, label_suffix) pair, or (None, None).
 
-def assign_third_place_teams(matches):
+    label_suffix is e.g. 'A1' for a group+position team, or 'C/E/F/H/I3' for a third-place team.
+    """
+    kind = source[0]
+    if kind in ('W', 'R'):
+        position_idx = 0 if kind == 'W' else 1
+        position_num = position_idx + 1
+        standings = group_standings.get(source[1], [])
+        if len(standings) > position_idx:
+            return standings[position_idx]['team'], f"{source[1]}{position_num}"
+    elif kind == '3' and match_id is not None:
+        team_entry = third_place_team_by_group.get(match_id)
+        if team_entry:
+            slot = slot_string_for_match(match_id)
+            if slot:
+                return team_entry['team'], slot
+    return None, None
+
+
+def update_knockout_matches(matches):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    group_standings = {}
+    for group in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']:
+        if is_group_completed(group, matches):
+            group_standings[group] = calculate_group_standings(group, matches)
+
+    third_place_team_by_match = compute_third_place_assignments(matches, group_standings)
+
+    for match_id, (home_src, away_src) in OFFICIAL_R32_BRACKET.items():
+        home_team, home_suffix = _resolve_source_team(
+            home_src, group_standings, third_place_team_by_match, match_id
+        )
+        away_team, away_suffix = _resolve_source_team(
+            away_src, group_standings, third_place_team_by_match, match_id
+        )
+
+        if home_team and home_suffix:
+            cursor.execute(
+                'UPDATE matches SET home_team = ? WHERE id = ?',
+                (f"{home_team}({home_suffix})", match_id),
+            )
+        if away_team and away_suffix:
+            cursor.execute(
+                'UPDATE matches SET away_team = ? WHERE id = ?',
+                (f"{away_team}({away_suffix})", match_id),
+            )
+
+    conn.commit()
+    conn.close()
+
+
+def compute_third_place_assignments(matches, group_standings=None):
+    """Determine the third-place team assigned to each R32 match that has a third-place opponent.
+
+    Returns dict mapping match_id -> team_entry (with 'team' and 'group' keys).
+    Empty dict when fewer than 8 third-place teams are known or no matching combination exists.
+    """
     third_place_teams = calculate_all_third_place_teams(matches)
-    if not third_place_teams:
+    if len(third_place_teams) != 8:
         return {}
-
-    third_by_group = {t['group']: t for t in third_place_teams}
 
     qualified_groups = frozenset(t['group'] for t in third_place_teams)
     bracket_pattern = FIFA_COMBINATIONS.get(qualified_groups)
     if not bracket_pattern:
         return {}
 
-    slot_to_team = {}
-    for match_id, opponent_group in bracket_pattern.items():
-        if match_id not in MATCH_TO_SLOT:
-            continue
-        if opponent_group not in third_by_group:
-            continue
-        slot = MATCH_TO_SLOT[match_id]
-        team_name = third_by_group[opponent_group]['team']
-        slot_to_team[slot] = f"{team_name}({slot})"
-
-    return slot_to_team
-
-def update_knockout_matches(matches):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    knockout_mapping = {
-        73: ('A', 2), 74: ('E', 1), 75: ('F', 1), 76: ('C', 1),
-        77: ('I', 1), 78: ('E', 2), 79: ('A', 1), 80: ('L', 1),
-        81: ('D', 1), 82: ('G', 1), 83: ('K', 2), 84: ('H', 1),
-        85: ('B', 1), 86: ('J', 1), 87: ('K', 1), 88: ('D', 2)
-    }
-
-    for match_id, (group, position) in knockout_mapping.items():
-        if is_group_completed(group, matches):
-            standings = calculate_group_standings(group, matches)
-            if len(standings) >= position:
-                team = standings[position - 1]['team']
-                team_with_pos = f"{team}({group}{position})"
-                cursor.execute('UPDATE matches SET home_team = ? WHERE id = ?', (team_with_pos, match_id))
-
-    second_place_mapping = {
-        73: ('B', 2), 75: ('C', 2), 76: ('F', 2), 78: ('I', 2),
-        83: ('L', 2), 84: ('J', 2), 86: ('H', 2), 88: ('G', 2)
-    }
-
-    for match_id, (group, position) in second_place_mapping.items():
-        if is_group_completed(group, matches):
-            standings = calculate_group_standings(group, matches)
-            if len(standings) >= position:
-                team = standings[position - 1]['team']
-                team_with_pos = f"{team}({group}{position})"
-                cursor.execute('UPDATE matches SET away_team = ? WHERE id = ?', (team_with_pos, match_id))
-
-    slot_to_team = assign_third_place_teams(matches)
-    if slot_to_team:
-        for match in matches:
-            if match['stage'] != '1/16决赛':
-                continue
-            home = match['home_team']
-            away = match['away_team']
-            third_slots_list = list(slot_to_team.keys())
-            current_slot = None
-            for slot in third_slots_list:
-                if home == slot or (home and home.endswith(f'({slot})')):
-                    current_slot = slot
-                    break
-                if away == slot or (away and away.endswith(f'({slot})')):
-                    current_slot = slot
-                    break
-            if not current_slot:
-                continue
-            if current_slot in slot_to_team:
-                team_name = slot_to_team[current_slot]
-                if home == current_slot or (home and home.endswith(f'({current_slot})')):
-                    cursor.execute('UPDATE matches SET home_team = ? WHERE id = ?', (team_name, match['id']))
-                else:
-                    cursor.execute('UPDATE matches SET away_team = ? WHERE id = ?', (team_name, match['id']))
-
-    conn.commit()
-    conn.close()
+    group_to_entry = {t['group']: t for t in third_place_teams}
+    return {match_id: group_to_entry[group] for match_id, group in bracket_pattern.items()
+            if group in group_to_entry}
 
 def apply_knockout_winners():
     conn = get_db_connection()
@@ -1499,7 +1475,7 @@ def simulate():
     third_place_teams.sort(key=lambda x: (-x['team']['points'], -x['team']['gd'], -x['team']['gf']))
     qualified_3rd = [t['team']['name'] for t in third_place_teams[:8]]
 
-    sim_slot_groups = get_third_place_slot_groups()
+    sim_slot_groups = slot_to_pool_groups()
     sim_qualified_3rd_set = set(qualified_3rd)
     sim_third_group_to_team = {}
     for t in all_teams:
